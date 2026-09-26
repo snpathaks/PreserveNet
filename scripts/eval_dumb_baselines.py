@@ -25,7 +25,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from src.models.classifier import build_resnet18, train_one_epoch, evaluate
 from src.data.datasets     import get_cifar10_loaders
-from src.baselines.uniform      import UniformGridReducer
+from src.baselines.uniform      import UniformRandomReducer, UniformGridReducer
 from src.baselines.random_drop  import RandomDropReducer
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -92,8 +92,9 @@ print()
 
 # Each entry: (name, constructor_fn)
 reducer_factories = [
-    ('Uniform Grid', lambda r: UniformGridReducer(retention_rate=r)),
-    ('Random Drop',  lambda r: RandomDropReducer(retention_rate=r, seed=42)),
+    ('Uniform Random', lambda r: UniformRandomReducer(retention_rate=r, seed=42)),
+    ('Uniform Grid',   lambda r: UniformGridReducer(retention_rate=r)),
+    ('Random Drop',    lambda r: RandomDropReducer(retention_rate=r, seed=42)),
 ]
 
 # Results table: {reducer_name: {retention: acc}}

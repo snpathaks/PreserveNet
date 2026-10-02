@@ -32,7 +32,7 @@ from src.baselines.random_drop  import RandomDropReducer
 BATCH_SIZE      = 128
 IMAGE_SIZE      = 32          # native CIFAR-10 — fast on CPU
 NUM_CLASSES     = 10
-EPOCHS          = 1           # bump to 5 for a stronger reference model
+EPOCHS          = 3           # bumped from 1 for a stronger reference model
 LR              = 1e-3
 DEVICE          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

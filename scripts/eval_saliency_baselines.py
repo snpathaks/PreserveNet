@@ -36,11 +36,17 @@ from src.baselines.saliency    import GradientSaliencyReducer, GradCAMReducer
 
 # ── Config ────────────────────────────────────────────────────────────────────
 IMAGE_SIZE      = 32          # native CIFAR-10 — fast on CPU
-BATCH_SIZE      = 64          # smaller batch: saliency reducers do backward pass
+BATCH_SIZE      = 64          # batch size for dumb baselines
+SALIENCY_BATCH  = 32          # smaller batch for saliency (backward pass is expensive)
 NUM_CLASSES     = 10
 EPOCHS          = 3
 LR              = 1e-3
 DEVICE          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# Cap val batches for saliency reducers on CPU to keep runtime reasonable.
+# At 32 img/batch x 50 batches = 1,600 images (16% of CIFAR val set).
+# Remove / increase this if running on GPU.
+MAX_VAL_BATCHES_SALIENCY = 50  # set to None to evaluate on full val set
 
 # Retention rates to sweep  (1.0 = full image, 0.1 = keep 10 % of pixels)
 RETENTION_RATES = [1.0, 0.75, 0.50, 0.25, 0.10]
@@ -49,11 +55,13 @@ print()
 print('=' * 70)
 print('  PreserveNet | Step 5 — Saliency vs. Dumb Baseline Sweep')
 print('=' * 70)
-print(f'  device     : {DEVICE}')
-print(f'  image_size : {IMAGE_SIZE}')
-print(f'  batch_size : {BATCH_SIZE}')
-print(f'  epochs     : {EPOCHS}  (head-only fine-tuning on full images)')
-print(f'  retentions : {RETENTION_RATES}')
+print(f'  device                : {DEVICE}')
+print(f'  image_size            : {IMAGE_SIZE}')
+print(f'  batch_size (dumb)     : {BATCH_SIZE}')
+print(f'  batch_size (saliency) : {SALIENCY_BATCH}')
+print(f'  epochs                : {EPOCHS}  (head-only fine-tuning on full images)')
+print(f'  retentions            : {RETENTION_RATES}')
+print(f'  max_val_batches (sal) : {MAX_VAL_BATCHES_SALIENCY}')
 print()
 
 # ── 1. Data ───────────────────────────────────────────────────────────────────
@@ -65,6 +73,15 @@ train_loader, val_loader, meta = get_cifar10_loaders(
     num_workers=0,
     augment=True,
     download=True,
+)
+# Separate small-batch val loader for saliency (cheaper per-batch backward)
+_, val_loader_sal, _ = get_cifar10_loaders(
+    data_dir=DATA_DIR,
+    batch_size=SALIENCY_BATCH,
+    image_size=IMAGE_SIZE,
+    num_workers=0,
+    augment=False,
+    download=False,
 )
 print(f'  {meta}')
 print()
@@ -97,22 +114,30 @@ print()
 print('[3/3] Sweeping all reducers across retention rates ...')
 print()
 
-# Each entry: (name, constructor_fn)
-# Saliency reducers receive the trained model — dumb ones do not
+# Each entry: (name, constructor_fn, is_saliency)
+# Saliency reducers receive the trained model; dumb ones do not.
 reducer_factories = [
-    ('Uniform Random',    lambda r: UniformRandomReducer(retention_rate=r, seed=42)),
-    ('Uniform Grid',      lambda r: UniformGridReducer(retention_rate=r)),
-    ('Random Drop',       lambda r: RandomDropReducer(retention_rate=r, seed=42)),
-    ('Grad Saliency',     lambda r: GradientSaliencyReducer(model, retention_rate=r, device=DEVICE)),
-    ('GradCAM',           lambda r: GradCAMReducer(model, retention_rate=r, device=DEVICE)),
+    ('Uniform Random', lambda r: UniformRandomReducer(retention_rate=r, seed=42), False),
+    ('Uniform Grid',   lambda r: UniformGridReducer(retention_rate=r),             False),
+    ('Random Drop',    lambda r: RandomDropReducer(retention_rate=r, seed=42),    False),
+    ('Grad Saliency',  lambda r: GradientSaliencyReducer(model, retention_rate=r, device=DEVICE), True),
+    ('GradCAM',        lambda r: GradCAMReducer(model, retention_rate=r, device=DEVICE),          True),
 ]
 
 # Results table: {reducer_name: {retention: acc}}
-results: dict[str, dict[float, float]] = {}
+results:       dict[str, dict[float, float]] = {}
+n_samples_log: dict[str, int]               = {}
 
-for reducer_name, make_reducer in reducer_factories:
+for reducer_name, make_reducer, is_saliency in reducer_factories:
     results[reducer_name] = {}
-    print(f'  Reducer: {reducer_name}')
+    loader  = val_loader_sal if is_saliency else val_loader
+    max_bat = MAX_VAL_BATCHES_SALIENCY if is_saliency else None
+
+    if is_saliency and max_bat is not None:
+        n_est = min(max_bat * SALIENCY_BATCH, meta.n_val)
+        print(f'  Reducer: {reducer_name}  (evaluating on ~{n_est} images)')
+    else:
+        print(f'  Reducer: {reducer_name}  (evaluating on full val set)')
 
     for r in RETENTION_RATES:
         reducer = make_reducer(r)
@@ -121,29 +146,37 @@ for reducer_name, make_reducer in reducer_factories:
         model.eval()
         correct = total = 0
 
-        with torch.set_grad_enabled(reducer_name in ('Grad Saliency', 'GradCAM')):
-            for imgs, labels in val_loader:
-                imgs_reduced = reducer(imgs)           # apply reduction
+        for batch_idx, (imgs, labels) in enumerate(loader):
+            if max_bat is not None and batch_idx >= max_bat:
+                break
+
+            if is_saliency:
+                # Saliency reducer does its own forward+backward internally.
+                # Enable grad only for that call, then switch off for accuracy.
+                imgs_reduced = reducer(imgs)           # grad enabled inside reducer
                 imgs_r       = imgs_reduced.to(DEVICE)
                 labels       = labels.to(DEVICE)
-
-                # For saliency reducers a backward was already done inside
-                # reducer(); we now do a clean forward for final accuracy.
                 with torch.no_grad():
+                    logits = model(imgs_r)
+            else:
+                with torch.no_grad():
+                    imgs_r  = reducer(imgs).to(DEVICE)
+                    labels  = labels.to(DEVICE)
                     logits  = model(imgs_r)
 
-                correct += (logits.argmax(1) == labels).sum().item()
-                total   += imgs.size(0)
+            correct += (logits.argmax(1) == labels).sum().item()
+            total   += imgs.size(0)
 
         acc = correct / total * 100
         results[reducer_name][r] = acc
+        n_samples_log[reducer_name] = total
 
         elapsed = time.perf_counter() - t0
         if hasattr(reducer, 'actual_retention'):
             actual = reducer.actual_retention(IMAGE_SIZE, IMAGE_SIZE)
-            print(f'    r={r:.0%}  (actual {actual:.0%})  ->  val_acc = {acc:.2f}%  ({elapsed:.1f}s)')
+            print(f'    r={r:.0%}  (actual {actual:.0%})  ->  val_acc = {acc:.2f}%  ({elapsed:.1f}s, n={total})')
         else:
-            print(f'    r={r:.0%}                  ->  val_acc = {acc:.2f}%  ({elapsed:.1f}s)')
+            print(f'    r={r:.0%}                  ->  val_acc = {acc:.2f}%  ({elapsed:.1f}s, n={total})')
 
     print()
 
@@ -151,10 +184,11 @@ for reducer_name, make_reducer in reducer_factories:
 col_width = 16
 
 print()
-print('=' * 70)
+print('=' * 75)
 print('  SALIENCY vs. DUMB BASELINE RESULTS')
 print('  (classifier trained on full images; tested on reduced images)')
-print('=' * 70)
+print('  NOTE: saliency reducers evaluated on a subset of val set on CPU.')
+print('=' * 75)
 
 header = f"  {'Retention':>10}"
 for name in results:
@@ -169,12 +203,12 @@ for r in RETENTION_RATES:
         row += f'  {acc:>{col_width}.2f}%'
     print(row)
 
-print('=' * 70)
+print('=' * 75)
 print()
 print('  Interpretation:')
 print('  * r=100% row  = trained baseline (all reducers should match this)')
-print('  * Dumb rows   = accuracy after naive pixel drop')
-print('  * Saliency    = accuracy when model-informed pixels are kept')
+print('  * Dumb rows   = accuracy after naive pixel drop (full val set)')
+print('  * Saliency    = accuracy when model-informed pixels are kept (subset)')
 print('  * A saliency reducer WINS if it out-performs dumb baselines at')
 print('    the same retention rate.')
 print()

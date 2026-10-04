@@ -1,4 +1,4 @@
-# PreserveNet — Prediction-Preserving Image Reduction
+## PreserveNet — Prediction-Preserving Image Reduction
 
 > **Core question:** How many pixels can you remove from an image before a classifier changes its prediction?  
 > **Goal:** Build and benchmark pixel-reduction strategies that maximally preserve model accuracy at increasing sparsity levels.

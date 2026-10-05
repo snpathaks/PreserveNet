@@ -5,7 +5,13 @@ Transform factories for PreserveNet datasets.
 
 All normalisation constants live here so every other module can import
 from a single source of truth rather than repeating magic numbers.
-"""
+
+Transform pipelines
+-------------------
+• CIFAR-10 (32×32 native or 224×224 for pretrained ViT)
+• Imagenette (224×224 ImageNet-style)
+    - eval : Resize(256) → CenterCrop(224)
+    - train : RandomResizedCrop(224) + RandomHorizontalFlip"""
 
 from __future__ import annotations
 
@@ -90,6 +96,47 @@ def cifar10_raw_transform(image_size: int = 32) -> T.Compose:
     if image_size == 32:
         return T.Compose([T.ToTensor()])
     return T.Compose([T.Resize(image_size), T.ToTensor()])
+
+
+# ── Imagenette / ImageNet-style 224×224 transforms ────────────────────────────
+
+def imagenette_train_transform() -> T.Compose:
+    """
+    Standard ImageNet-style training transform for Imagenette.
+
+    Pipeline:
+        RandomResizedCrop(224) → RandomHorizontalFlip →
+        ToTensor → Normalize(ImageNet stats)
+
+    Returns:
+        A ``torchvision.transforms.Compose`` pipeline.
+    """
+    return T.Compose([
+        T.RandomResizedCrop(224),
+        T.RandomHorizontalFlip(),
+        T.ToTensor(),
+        T.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+    ])
+
+
+def imagenette_val_transform() -> T.Compose:
+    """
+    Deterministic eval/test transform for Imagenette.
+
+    Pipeline:
+        Resize(256) → CenterCrop(224) → ToTensor → Normalize(ImageNet stats)
+
+    This matches the standard ImageNet validation preprocessing.
+
+    Returns:
+        A ``torchvision.transforms.Compose`` pipeline.
+    """
+    return T.Compose([
+        T.Resize(256),
+        T.CenterCrop(224),
+        T.ToTensor(),
+        T.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+    ])
 
 
 def denormalise(

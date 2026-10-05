@@ -5,24 +5,19 @@ Dataset and DataLoader factories for PreserveNet.
 
 Usage
 -----
-    from src.data.datasets import get_cifar10_loaders
+    from src.data.datasets import get_cifar10_loaders, get_imagenette_loaders
 
+    # CIFAR-10
     train_loader, val_loader, meta = get_cifar10_loaders(
-        data_dir='./data',
-        batch_size=128,
-        image_size=32,      # or 224 for pretrained ViT
-        num_workers=2,
+        data_dir='./data', batch_size=128, image_size=32,
     )
-    print(meta)
-    # {
-    #   'classes': ['airplane', ...],
-    #   'n_classes': 10,
-    #   'n_train': 50000,
-    #   'n_val': 10000,
-    #   'image_size': 32,
-    #   'mean': (0.4914, 0.4822, 0.4465),
-    #   'std':  (0.2470, 0.2435, 0.2616),
-    # }
+
+    # Imagenette (224×224)
+    train_loader, val_loader, meta = get_imagenette_loaders(
+        data_dir='./data', batch_size=32,
+    )
+    imgs, labels = next(iter(train_loader))
+    # imgs.shape → torch.Size([32, 3, 224, 224])
 """
 
 from __future__ import annotations
@@ -43,6 +38,8 @@ from src.data.transforms import (
     IMAGENET_STD,
     cifar10_train_transform,
     cifar10_val_transform,
+    imagenette_train_transform,
+    imagenette_val_transform,
 )
 
 
@@ -159,6 +156,165 @@ def get_cifar10_loaders(
         image_size=image_size,
         mean=mean,
         std=std,
+    )
+
+    return train_loader, val_loader, meta
+
+
+# ── Imagenette ───────────────────────────────────────────────────────────────
+
+#: Imagenette 10 classes (WordNet-style folder names mapped to readable labels)
+IMAGENETTE_CLASSES: list[str] = [
+    'tench', 'English springer', 'cassette player',
+    'chain saw', 'church', 'French horn',
+    'garbage truck', 'gas pump', 'golf ball', 'parachute',
+]
+
+# fastai CDN URL for the 320-px variant (no pre-extracted version needed)
+_IMAGENETTE_URL = 'https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-320.tgz'
+
+
+def _download_imagenette_fastai(dest: Path) -> Path:
+    """
+    Download and extract Imagenette from the fastai S3 CDN.
+
+    Args:
+        dest: Directory under which ``imagenette2-320/`` will be placed.
+
+    Returns:
+        Path to the extracted ``imagenette2-320`` root.
+    """
+    import tarfile
+    import urllib.request
+
+    dest.mkdir(parents=True, exist_ok=True)
+    tgz_path = dest / 'imagenette2-320.tgz'
+    dataset_root = dest / 'imagenette2-320'
+
+    if not dataset_root.exists():
+        if not tgz_path.exists():
+            print(f'Downloading Imagenette from {_IMAGENETTE_URL} …')
+            urllib.request.urlretrieve(_IMAGENETTE_URL, tgz_path)
+        print(f'Extracting {tgz_path} …')
+        with tarfile.open(tgz_path, 'r:gz') as tar:
+            tar.extractall(dest)
+
+    return dataset_root
+
+
+def get_imagenette_loaders(
+    data_dir:    str | Path = './data',
+    batch_size:  int = 32,
+    num_workers: int | None = None,
+    augment:     bool = True,
+    pin_memory:  bool = True,
+    source:      str  = 'fastai',  # 'fastai' or 'hf' (hf requires datasets>=2 with non-script repos)
+) -> tuple[DataLoader, DataLoader, DatasetMeta]:
+    """
+    Build train and validation DataLoaders for Imagenette (224×224).
+
+    Download strategy (controlled by *source*):
+
+    * ``'hf'``     — Hugging Face Hub ``frgfm/imagenette`` (requires
+                     ``pip install datasets``; downloads on first call).
+    * ``'fastai'`` — fastai CDN tar file
+                     (``imagenette2-320.tgz``, ~160 MB).
+
+    Args:
+        data_dir:    Root cache directory.
+        batch_size:  Mini-batch size.
+        num_workers: DataLoader worker count (auto on Linux, 0 on Windows).
+        augment:     Apply RandomResizedCrop + flip on the training split.
+        pin_memory:  Pin tensors to page-locked memory for faster GPU transfer.
+        source:      ``'hf'`` or ``'fastai'`` — controls the download backend.
+
+    Returns:
+        (train_loader, val_loader, meta) where *meta* is a :class:`DatasetMeta`.
+
+    Example:
+        >>> train_loader, val_loader, meta = get_imagenette_loaders(
+        ...     data_dir='./data', batch_size=32
+        ... )
+        >>> imgs, _ = next(iter(train_loader))
+        >>> imgs.shape   # torch.Size([32, 3, 224, 224])
+    """
+    import platform
+    data_dir = Path(data_dir)
+
+    # ── Resolve num_workers ──────────────────────────────────────────────────
+    if num_workers is None:
+        num_workers = 0 if platform.system() == 'Windows' else min(os.cpu_count() or 1, 4)
+
+    # ── Transforms ────────────────────────────────────────────────────────────
+    train_tf = imagenette_train_transform() if augment else imagenette_val_transform()
+    val_tf   = imagenette_val_transform()
+
+    # ── Datasets ──────────────────────────────────────────────────────────────
+    if source == 'hf':
+        try:
+            from datasets import load_dataset  # type: ignore[import]
+            from torch.utils.data import Dataset as TorchDataset
+
+            class _HFImagenetteDataset(TorchDataset):
+                """Thin wrapper to apply torchvision transforms to an HF dataset."""
+
+                def __init__(self, hf_split, transform=None):
+                    self._ds = hf_split
+                    self._transform = transform
+
+                def __len__(self):
+                    return len(self._ds)
+
+                def __getitem__(self, idx):
+                    sample = self._ds[idx]
+                    img = sample['image'].convert('RGB')
+                    if self._transform:
+                        img = self._transform(img)
+                    return img, sample['label']
+
+            hf_ds = load_dataset(
+                'frgfm/imagenette',
+                '320px',
+                cache_dir=str(data_dir / 'imagenette_hf'),
+            )
+            train_ds = _HFImagenetteDataset(hf_ds['train'],      transform=train_tf)
+            val_ds   = _HFImagenetteDataset(hf_ds['validation'], transform=val_tf)
+
+        except (ImportError, RuntimeError, Exception) as _hf_err:
+            print(
+                f"[get_imagenette_loaders] HF load failed ({type(_hf_err).__name__}: {_hf_err}). "
+                "Falling back to fastai CDN download."
+            )
+            source = 'fastai'
+
+    if source == 'fastai':
+        dataset_root = _download_imagenette_fastai(data_dir / 'imagenette')
+        train_ds = datasets.ImageFolder(
+            root=str(dataset_root / 'train'), transform=train_tf
+        )
+        val_ds = datasets.ImageFolder(
+            root=str(dataset_root / 'val'),   transform=val_tf
+        )
+
+    # ── DataLoaders ───────────────────────────────────────────────────────────
+    _loader_kwargs = dict(
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=pin_memory and torch.cuda.is_available(),
+    )
+    train_loader = DataLoader(train_ds, shuffle=True,  **_loader_kwargs)
+    val_loader   = DataLoader(val_ds,   shuffle=False, **_loader_kwargs)
+
+    # ── Metadata ──────────────────────────────────────────────────────────────
+    meta = DatasetMeta(
+        name='Imagenette',
+        classes=IMAGENETTE_CLASSES,
+        n_classes=10,
+        n_train=len(train_ds),
+        n_val=len(val_ds),
+        image_size=224,
+        mean=IMAGENET_MEAN,
+        std=IMAGENET_STD,
     )
 
     return train_loader, val_loader, meta

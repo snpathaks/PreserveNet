@@ -1,28 +1,38 @@
-"""
+﻿"""
 src/models/classifier.py
-────────────────────────
-Step 2 — Baseline classifier (no reduction at all).
+------------------------
+Baseline classifiers for PreserveNet.
 
-Loads a pretrained ResNet-18 through ``timm``, runs it on a CIFAR-10 batch
-(images resized to 224 × 224 so the ImageNet weights make sense), and reports
-top-1 accuracy on the *full* validation set.
+Provides two families of models:
 
-This number is your North Star: every future experiment that adds a reducer
-in front of this classifier must be measured against it.
+1. CIFAR-10 transfer (fine-tune head)
+   build_resnet18(num_classes=10)
+   Replaces the 1000-class ImageNet head with a fresh 10-class head, then
+   fine-tunes only that head on CIFAR-10 with the backbone frozen.
 
-Usage (standalone)
-------------------
-    python -m src.models.classifier
+2. Imagenette zero-shot / identity remap  (no fine-tuning needed)
+   build_imagenette_classifier(arch='resnet18')
+   build_vit_imagenette_classifier()
+   build_timm_imagenette_classifier(arch)
 
-Or import the pieces you need:
-    from src.models.classifier import build_resnet18, evaluate
+   Imagenette's 10 classes are a strict subset of ImageNet-1000, so the
+   pretrained 1000-class head already knows all of them.  We wrap the model
+   in ImagenetteZeroShotClassifier, which slices out the 10 relevant
+   logit columns and re-indexes them to [0, 9].  This gives 90%+ top-1
+   accuracy with zero fine-tuning.
 
-Architecture note
------------------
-We replace the final FC layer (1 000 ImageNet classes) with a new linear head
-of size ``num_classes`` (10 for CIFAR-10), then fine-tune **only that head**
-for a handful of epochs so the backbone features stay frozen and we converge
-fast.  This is standard linear probing / transfer learning.
+Usage
+-----
+    from src.models.classifier import (
+        build_resnet18,
+        build_imagenette_classifier,
+        build_vit_imagenette_classifier,
+        evaluate,
+    )
+
+    # Zero-shot on Imagenette
+    model = build_imagenette_classifier('resnet18')  # or 'vit_small_patch16_224'
+    # model(x).shape == (B, 10)  -- already 10 classes, no training
 """
 
 from __future__ import annotations
@@ -36,19 +46,19 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# ── timm import ───────────────────────────────────────────────────────────────
+# -- timm import --------------------------------------------------------------
 try:
     import timm
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
-        "timm is required for Step 2.  Install it with:\n"
+        "timm is required.  Install it with:\n"
         "    pip install timm"
     ) from exc
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Model factory
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# CIFAR-10: head-replacement + fine-tune
+# =============================================================================
 
 def build_resnet18(
     num_classes: int = 10,
@@ -56,23 +66,16 @@ def build_resnet18(
     freeze_backbone: bool = True,
 ) -> nn.Module:
     """
-    Return a ResNet-18 with a fresh classification head for *num_classes*.
+    Return a ResNet-18 with a fresh classification head for num_classes.
 
     Args:
         num_classes:      Number of output classes (10 for CIFAR-10).
         pretrained:       Load ImageNet-1k pretrained weights via timm.
         freeze_backbone:  If True, freeze all layers except the final FC so
-                          only the head is trained.  Set False for full
-                          fine-tuning.
+                          only the head is trained.
 
     Returns:
-        A ``torch.nn.Module`` ready for training / inference.
-
-    Example:
-        >>> model = build_resnet18(num_classes=10, pretrained=True)
-        >>> x = torch.randn(4, 3, 224, 224)
-        >>> model(x).shape
-        torch.Size([4, 10])
+        A torch.nn.Module ready for training / inference.
     """
     model = timm.create_model(
         'resnet18',
@@ -81,19 +84,139 @@ def build_resnet18(
     )
 
     if freeze_backbone:
-        # Freeze everything ...
         for param in model.parameters():
             param.requires_grad = False
-        # ... then unfreeze only the classification head.
         for param in model.get_classifier().parameters():
             param.requires_grad = True
 
     return model
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# Imagenette zero-shot classifier  (no fine-tuning required)
+# =============================================================================
+
+# Imagenette label index (0-9) -> ImageNet-1k class index (0-999)
+# Source: https://github.com/fastai/imagenette
+# n01440764=tench(0), n02102040=Eng.springer(217), n02979186=cassette(482),
+# n03000684=chain saw(491), n03028079=church(497), n03394916=French horn(566),
+# n03417042=garbage truck(569), n03425413=gas pump(571),
+# n03445777=golf ball(574), n03888257=parachute(701)
+IMAGENETTE_IMAGENET_INDICES: list[int] = [
+    0,    # tench
+    217,  # English springer
+    482,  # cassette player
+    491,  # chain saw
+    497,  # church
+    566,  # French horn
+    569,  # garbage truck
+    571,  # gas pump
+    574,  # golf ball
+    701,  # parachute
+]
+
+
+class ImagenetteZeroShotClassifier(nn.Module):
+    """
+    Wraps any timm ImageNet-1k model to produce 10-class Imagenette logits.
+
+    The backbone is loaded with its full 1000-class pretrained head intact.
+    During forward(), we extract only the 10 columns that correspond to
+    Imagenette classes (using IMAGENETTE_IMAGENET_INDICES).  This is a
+    zero-shot setup -- no fine-tuning is required.
+
+    Args:
+        backbone:   A timm model with a 1000-class output head.
+        freeze:     If True, all backbone parameters are frozen (no grad).
+
+    Shape:
+        - Input:  (B, 3, 224, 224) normalised with ImageNet stats.
+        - Output: (B, 10) logits for the 10 Imagenette classes.
+    """
+
+    _IDX = torch.tensor(IMAGENETTE_IMAGENET_INDICES, dtype=torch.long)
+
+    def __init__(self, backbone: nn.Module, freeze: bool = True) -> None:
+        super().__init__()
+        self.backbone = backbone
+        if freeze:
+            for p in self.backbone.parameters():
+                p.requires_grad = False
+        # Register as buffer so it moves to the right device with .to(device)
+        self.register_buffer('_class_idx', self._IDX.clone())
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        logits_1000 = self.backbone(x)         # (B, 1000)
+        return logits_1000[:, self._class_idx]  # (B, 10)
+
+    def get_classifier(self) -> nn.Module:
+        """Expose the backbone classifier head (for parameter counting)."""
+        return self.backbone.get_classifier()
+
+
+def build_timm_imagenette_classifier(
+    arch:   str  = 'resnet18',
+    freeze: bool = True,
+) -> ImagenetteZeroShotClassifier:
+    """
+    Generic factory: load any timm ImageNet-1k model and wrap it for
+    zero-shot Imagenette inference.
+
+    Args:
+        arch:   Any timm model name, e.g. 'resnet18', 'vit_small_patch16_224'.
+        freeze: Freeze all backbone parameters (recommended for zero-shot).
+
+    Returns:
+        ImagenetteZeroShotClassifier ready for eval.
+    """
+    backbone = timm.create_model(arch, pretrained=True, num_classes=1000)
+    return ImagenetteZeroShotClassifier(backbone, freeze=freeze)
+
+
+def build_imagenette_classifier(
+    arch:   str  = 'resnet18',
+    freeze: bool = True,
+) -> ImagenetteZeroShotClassifier:
+    """
+    Load a pretrained ResNet-18 (default) for zero-shot Imagenette.
+
+    Imagenette's 10 classes are a strict subset of ImageNet-1k, so the
+    pretrained 1000-class head already knows all of them.  No fine-tuning
+    required; typically achieves >= 90% top-1 accuracy.
+
+    Args:
+        arch:   timm architecture name (default: 'resnet18').
+        freeze: Freeze backbone (True by default for zero-shot mode).
+
+    Returns:
+        ImagenetteZeroShotClassifier wrapping the backbone.
+    """
+    return build_timm_imagenette_classifier(arch=arch, freeze=freeze)
+
+
+def build_vit_imagenette_classifier(
+    freeze: bool = True,
+) -> ImagenetteZeroShotClassifier:
+    """
+    Load a pretrained ViT-Small/16 for zero-shot Imagenette inference.
+
+    Uses vit_small_patch16_224 from timm (trained on ImageNet-1k).
+    Achieves >= 90% top-1 on Imagenette without any fine-tuning.
+
+    Args:
+        freeze: Freeze backbone parameters.
+
+    Returns:
+        ImagenetteZeroShotClassifier wrapping the ViT backbone.
+    """
+    return build_timm_imagenette_classifier(
+        arch='vit_small_patch16_224', freeze=freeze
+    )
+
+
+# =============================================================================
 # Training / evaluation helpers
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 
 def train_one_epoch(
     model:     nn.Module,
@@ -133,10 +256,10 @@ def evaluate(
     device: torch.device,
 ) -> dict[str, float]:
     """
-    Evaluate *model* on *loader* and return accuracy / loss metrics.
+    Evaluate model on loader and return accuracy / loss metrics.
 
     Returns:
-        dict with keys ``'top1_acc'``, ``'loss'``, ``'n_samples'``.
+        dict with keys 'top1_acc', 'loss', 'n_samples'.
     """
     model.eval()
     criterion   = nn.CrossEntropyLoss()
@@ -161,9 +284,9 @@ def evaluate(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 # Output-shape sanity check
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
 
 def check_output_shape(
     model:       nn.Module,
@@ -183,10 +306,10 @@ def check_output_shape(
         device:      Where to run the check (defaults to CPU).
 
     Returns:
-        The actual output ``torch.Size``.
+        The actual output torch.Size.
 
     Raises:
-        AssertionError: If the shape does not match ``(batch_size, num_classes)``.
+        AssertionError: If the shape does not match (batch_size, num_classes).
     """
     if device is None:
         device = torch.device('cpu')
@@ -199,15 +322,15 @@ def check_output_shape(
 
     expected = torch.Size([batch_size, num_classes])
     assert out.shape == expected, (
-        f"Shape mismatch — got {out.shape}, expected {expected}"
+        f"Shape mismatch -- got {out.shape}, expected {expected}"
     )
     print(f'  * Output shape check passed: {tuple(out.shape)}')
     return out.shape
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Standalone entry-point
-# ─────────────────────────────────────────────────────────────────────────────
+# =============================================================================
+# Standalone entry-point (CIFAR-10 head fine-tune demo)
+# =============================================================================
 
 if __name__ == '__main__':
     import sys
@@ -215,11 +338,11 @@ if __name__ == '__main__':
 
     from src.data.datasets import get_cifar10_loaders
 
-    # ── Config ────────────────────────────────────────────────────────────────
+    # -- Config ----------------------------------------------------------------
     BATCH_SIZE      = 128
-    IMAGE_SIZE      = 224        # resize CIFAR to ImageNet resolution
+    IMAGE_SIZE      = 224
     NUM_CLASSES     = 10
-    EPOCHS          = 5          # head-only fine-tuning; backbone is frozen
+    EPOCHS          = 5
     LR              = 1e-3
     DATA_DIR        = Path(__file__).resolve().parents[3] / 'data'
     DEVICE          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -234,7 +357,6 @@ if __name__ == '__main__':
     print(f'  data_dir   : {DATA_DIR}')
     print()
 
-    # ── 1. Build model ────────────────────────────────────────────────────────
     print('[1/4] Building ResNet-18 (pretrained, head frozen) ...')
     model = build_resnet18(
         num_classes=NUM_CLASSES,
@@ -242,7 +364,6 @@ if __name__ == '__main__':
         freeze_backbone=True,
     )
 
-    # ── 2. Sanity-check output shape ──────────────────────────────────────────
     print('[2/4] Checking output shape with a dummy batch ...')
     check_output_shape(
         model,
@@ -252,20 +373,18 @@ if __name__ == '__main__':
         device=DEVICE,
     )
 
-    # Count trainable parameters
-    total_params   = sum(p.numel() for p in model.parameters())
-    trainable      = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable    = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'  total params    : {total_params:,}')
     print(f'  trainable params: {trainable:,}  (head only)')
     print()
 
-    # ── 3. Load data ──────────────────────────────────────────────────────────
     print('[3/4] Loading CIFAR-10 at 224 x 224 ...')
     train_loader, val_loader, meta = get_cifar10_loaders(
         data_dir=DATA_DIR,
         batch_size=BATCH_SIZE,
         image_size=IMAGE_SIZE,
-        num_workers=0,        # safe on Windows
+        num_workers=0,
         augment=True,
     )
     print(f'  {meta}')
@@ -273,7 +392,6 @@ if __name__ == '__main__':
     print(f'  val   batches : {len(val_loader)}')
     print()
 
-    # ── 4. Fine-tune head & evaluate ──────────────────────────────────────────
     print(f'[4/4] Fine-tuning classification head for {EPOCHS} epochs ...')
     model.to(DEVICE)
 
@@ -289,7 +407,6 @@ if __name__ == '__main__':
 
     for epoch in range(EPOCHS):
         t_ep = time.perf_counter()
-
         avg_loss = train_one_epoch(
             model, train_loader, criterion, optimiser, DEVICE, epoch
         )
@@ -315,8 +432,5 @@ if __name__ == '__main__':
     print(f'  BEST val accuracy (no reduction): {best_acc * 100:.2f}%')
     print(f'  Total training time : {total_time / 60:.1f} min')
     print('-' * 60)
-    print()
-    print('  This is your BASELINE number.')
-    print('  Any reducer you add must beat (or at least not degrade) this.')
     print()
     print('Step 2 PASSED.')

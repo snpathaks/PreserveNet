@@ -46,7 +46,9 @@ PreserveNet/
 │   │   ├── datasets.py       # Imagenette (fastai CDN) & CIFAR-10 data loaders
 │   │   └── transforms.py     # 224×224 transforms (RandomResizedCrop / CenterCrop)
 │   ├── models/
-│   │   └── classifier.py     # ImagenetteZeroShotClassifier, ResNet-18, ViT-S
+│   │   ├── classifier.py     # ImagenetteZeroShotClassifier, ResNet-18, ViT-S
+│   │   ├── reducer.py        # PatchScorer CNN + PatchScoreReducer (Step 6)
+│   │   └── operators.py      # MaskOperator: hard top-k & soft Gumbel masks (Step 6)
 │   └── baselines/
 │       ├── uniform.py        # UniformRandomReducer, UniformGridReducer (16×16 patch)
 │       ├── random_drop.py    # RandomDropReducer (16×16 Bernoulli patch drop)
@@ -56,7 +58,8 @@ PreserveNet/
 │   ├── eval_imagenette_classifier.py  # Zero-shot / fine-tuned classifier verification
 │   ├── eval_saliency_baselines.py     # Native 224×224 patch-level baseline sweep
 │   ├── eval_dumb_baselines.py         # Naive reducer sweeps
-│   └── baseline.py                    # CIFAR-10 initial reference
+│   ├── baseline.py                    # CIFAR-10 initial reference
+│   └── sanity_check_reducer.py        # Step 6: shape/range/heatmap sanity check
 ├── notebooks/
 │   ├── imagenette_sanity_check.py     # Batch shape & visual sanity check
 │   └── imagenette_sanity.png          # Visual verification artifact

@@ -48,7 +48,14 @@ PreserveNet/
 │   ├── models/
 │   │   ├── classifier.py     # ImagenetteZeroShotClassifier, ResNet-18, ViT-S
 │   │   ├── reducer.py        # PatchScorer CNN + PatchScoreReducer (Step 6)
-│   │   └── operators.py      # MaskOperator: hard top-k & soft Gumbel masks (Step 6)
+│   │   ├── operators.py      # MaskOperator: hard top-k & soft Gumbel masks (Step 6)
+│   │   └── pipeline.py       # PreserveNet forward pipeline: Reducer → Mask → Frozen Classifier (Step 7)
+│   ├── losses/
+│   │   ├── budget.py         # L_budget: sparsity / retention rate penalty (Step 7)
+│   │   └── agreement.py      # L_agreement (KL divergence) & L_task (CE) (Step 7)
+│   ├── training/
+│   │   ├── schedulers.py     # Gumbel-Softmax tau annealing & loss coefficient warmup (Step 7)
+│   │   └── trainer.py        # PreserveNetTrainer end-to-end training loop (Step 7)
 │   └── baselines/
 │       ├── uniform.py        # UniformRandomReducer, UniformGridReducer (16×16 patch)
 │       ├── random_drop.py    # RandomDropReducer (16×16 Bernoulli patch drop)
@@ -59,10 +66,12 @@ PreserveNet/
 │   ├── eval_saliency_baselines.py     # Native 224×224 patch-level baseline sweep
 │   ├── eval_dumb_baselines.py         # Naive reducer sweeps
 │   ├── baseline.py                    # CIFAR-10 initial reference
-│   └── sanity_check_reducer.py        # Step 6: shape/range/heatmap sanity check
+│   ├── sanity_check_reducer.py        # Step 6: shape/range/heatmap sanity check
+│   └── train_preservenet.py           # Step 7: End-to-end PreserveNet training script
 ├── notebooks/
 │   ├── imagenette_sanity_check.py     # Batch shape & visual sanity check
-│   └── imagenette_sanity.png          # Visual verification artifact
+│   ├── imagenette_sanity.png          # Visual verification artifact
+│   └── reducer_sanity_heatmap.png     # Step 6 verification heatmap
 └── requirements.txt
 ```
 
@@ -253,7 +262,7 @@ Accuracy Retention (% of original)
 | **3** | ✅ Done | Patch-level baselines: $16 \times 16$ patch reduction for Uniform, Random, GradCAM, Saliency |
 | **4** | ✅ Done | Full benchmark sweep across retention rates (100% to 10%) on Imagenette @ 224×224 |
 | **5** | ✅ Done | Cross-resolution comparison: CIFAR-32×32 vs. Imagenette-224×224 redundancy analysis |
-| **6** | 🔲 Next | Dynamic patch selection module (PreserveNet selector network) |
-| **7** | 🔲 Planned | End-to-end training of PreserveNet selector with classification loss + sparsity regularization |
-| **8** | 🔲 Planned | ViT token-pruning comparison (dropping input patch embeddings directly) |
+| **6** | ✅ Done | Dynamic patch selection module (PatchScorer CNN + MaskOperator with Gumbel-Softmax) |
+| **7** | ✅ Done | End-to-end training pipeline with classification ($L_{task}$), budget ($L_{budget}$), and agreement ($L_{agreement}$) losses |
+| **8** | 🔲 Next | ViT token-pruning comparison (dropping input patch embeddings directly) |
 | **9** | 🔲 Planned | Latency, throughput, and FLOPs benchmarking (speedup curves) |

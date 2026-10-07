@@ -1,4 +1,4 @@
-﻿"""
+"""
 src/losses/agreement.py
 ------------------------
 L_agreement: KL-divergence between masked and full-image predictions.
@@ -73,14 +73,14 @@ class AgreementLoss(nn.Module):
         direction:   'forward'  -> KL(p_full || p_masked)  [default]
                      'reverse'  -> KL(p_masked || p_full)
                      'symmetric'-> 0.5 * (forward + reverse)
-        reduction:   'mean' | 'sum' | 'none'
+        reduction:   'batchmean' | 'sum' | 'none'  ('batchmean' recommended)
     """
 
     def __init__(
         self,
         temperature: float = 2.0,
         direction:   Literal['forward', 'reverse', 'symmetric'] = 'forward',
-        reduction:   str   = 'mean',
+        reduction:   str   = 'batchmean',
     ) -> None:
         super().__init__()
         if temperature <= 0:
@@ -97,6 +97,7 @@ class AgreementLoss(nn.Module):
         q:     torch.Tensor,
     ) -> torch.Tensor:
         """KL(p || q) = sum_i p_i * (log p_i - log q_i)."""
+        # 'batchmean' divides only by batch size -- correct KL definition.
         return F.kl_div(log_p, q, reduction=self.reduction, log_target=False)
 
     def forward(

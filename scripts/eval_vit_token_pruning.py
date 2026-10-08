@@ -96,7 +96,9 @@ def get_gradcam_scores(
 ) -> torch.Tensor:
     """Extract 16x16 patch-level GradCAM scores (B, 196)."""
     with torch.enable_grad():
-        cam_map = gradcam_reducer.generate_cam(imgs)  # (B, 1, H, W)
+        cam_map = gradcam_reducer._compute_cam(imgs)  # (B, H, W)
+    if cam_map.dim() == 3:
+        cam_map = cam_map.unsqueeze(1)  # (B, 1, H, W)
     # Adaptive avg pool down to (14, 14) patch grid
     pooled = F.adaptive_avg_pool2d(cam_map, (14, 14))  # (B, 1, 14, 14)
     return pooled.view(imgs.size(0), -1)

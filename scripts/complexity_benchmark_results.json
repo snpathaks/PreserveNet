@@ -1,0 +1,501 @@
+{
+  "config": {
+    "device": "cpu",
+    "batch_size": 2,
+    "image_size": 224,
+    "retention_rates": [
+      1.0,
+      0.75,
+      0.5,
+      0.25,
+      0.1
+    ],
+    "n_timing_runs": 10
+  },
+  "flop_results": [
+    {
+      "retention_rate": 1.0,
+      "mode": "full",
+      "architecture": "resnet18",
+      "total_flops": 1819065856,
+      "total_gflops": 1.819065856,
+      "flop_reduction_pct": 0.0,
+      "tokens_kept": 196,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.75,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "total_flops": 1819116032,
+      "total_gflops": 1.819116032,
+      "flop_reduction_pct": -0.0027583388382934615,
+      "tokens_kept": 147,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.5,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "total_flops": 1819116032,
+      "total_gflops": 1.819116032,
+      "flop_reduction_pct": -0.0027583388382934615,
+      "tokens_kept": 98,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.25,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "total_flops": 1819116032,
+      "total_gflops": 1.819116032,
+      "flop_reduction_pct": -0.0027583388382934615,
+      "tokens_kept": 49,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.1,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "total_flops": 1819116032,
+      "total_gflops": 1.819116032,
+      "flop_reduction_pct": -0.0027583388382934615,
+      "tokens_kept": 20,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 1.0,
+      "mode": "full",
+      "architecture": "vit_small_patch16_224",
+      "total_flops": 4250674560,
+      "total_gflops": 4.25067456,
+      "flop_reduction_pct": 0.0,
+      "tokens_kept": 196,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.75,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "total_flops": 4250724736,
+      "total_gflops": 4.250724736,
+      "flop_reduction_pct": -0.0011804244077540105,
+      "tokens_kept": 147,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.5,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "total_flops": 4250724736,
+      "total_gflops": 4.250724736,
+      "flop_reduction_pct": -0.0011804244077540105,
+      "tokens_kept": 98,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.25,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "total_flops": 4250724736,
+      "total_gflops": 4.250724736,
+      "flop_reduction_pct": -0.0011804244077540105,
+      "tokens_kept": 49,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.1,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "total_flops": 4250724736,
+      "total_gflops": 4.250724736,
+      "flop_reduction_pct": -0.0011804244077540105,
+      "tokens_kept": 20,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 1.0,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "total_flops": 4250674560,
+      "total_gflops": 4.25067456,
+      "flop_reduction_pct": 0.0,
+      "tokens_kept": 196,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.75,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "total_flops": 3207873024,
+      "total_gflops": 3.207873024,
+      "flop_reduction_pct": 24.5326129130902,
+      "tokens_kept": 147,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.5,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "total_flops": 2165071488,
+      "total_gflops": 2.165071488,
+      "flop_reduction_pct": 49.0652258261804,
+      "tokens_kept": 98,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.25,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "total_flops": 1122269952,
+      "total_gflops": 1.122269952,
+      "flop_reduction_pct": 73.5978387392706,
+      "tokens_kept": 49,
+      "tokens_total": 196
+    },
+    {
+      "retention_rate": 0.1,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "total_flops": 505101696,
+      "total_gflops": 0.505101696,
+      "flop_reduction_pct": 88.11714025926275,
+      "tokens_kept": 20,
+      "tokens_total": 196
+    }
+  ],
+  "latency_results": [
+    {
+      "retention_rate": 1.0,
+      "mode": "full",
+      "architecture": "resnet18",
+      "latency_ms": 113.77708999934839,
+      "latency_std_ms": 19.60314154207392,
+      "throughput_fps": 17.578231259135332,
+      "speedup": 1.0,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.75,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "latency_ms": 108.73891000082949,
+      "latency_std_ms": 7.629538341764238,
+      "throughput_fps": 18.39268022812389,
+      "speedup": 1.0463328168222439,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.5,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "latency_ms": 103.32672000076855,
+      "latency_std_ms": 7.284040804229988,
+      "throughput_fps": 19.35607749849336,
+      "speedup": 1.1011390857902208,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.25,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "latency_ms": 95.57847999676596,
+      "latency_std_ms": 6.029591457063574,
+      "throughput_fps": 20.925212454390074,
+      "speedup": 1.1904048903393127,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.1,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "latency_ms": 92.12776999775087,
+      "latency_std_ms": 5.00872423267755,
+      "throughput_fps": 21.708980908241088,
+      "speedup": 1.2349923372955411,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 1.0,
+      "mode": "full",
+      "architecture": "vit_small_patch16_224",
+      "latency_ms": 201.47893999819644,
+      "latency_std_ms": 8.363224992693432,
+      "throughput_fps": 9.926595802111642,
+      "speedup": 1.0,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.75,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "latency_ms": 215.85754999832716,
+      "latency_std_ms": 30.299744439154093,
+      "throughput_fps": 9.265369684847714,
+      "speedup": 0.9333884313972703,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.5,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "latency_ms": 200.14229999942472,
+      "latency_std_ms": 9.040772743173653,
+      "throughput_fps": 9.992890058751941,
+      "speedup": 1.006678448277928,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.25,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "latency_ms": 201.17897000018274,
+      "latency_std_ms": 7.673013326499579,
+      "throughput_fps": 9.94139695614399,
+      "speedup": 1.001491060412594,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.1,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "latency_ms": 199.98832999990555,
+      "latency_std_ms": 6.749213931008397,
+      "throughput_fps": 10.000583534053936,
+      "speedup": 1.007453484902302,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 1.0,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "latency_ms": 199.466339997889,
+      "latency_std_ms": 5.271939125608511,
+      "throughput_fps": 10.026754388841578,
+      "speedup": 1.0,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.75,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "latency_ms": 146.96614000131376,
+      "latency_std_ms": 4.067743078763721,
+      "throughput_fps": 13.608576778175719,
+      "speedup": 1.3572265012614875,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.5,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "latency_ms": 103.44020000047749,
+      "latency_std_ms": 10.56332301730315,
+      "throughput_fps": 19.33484273996732,
+      "speedup": 1.928325157888019,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.25,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "latency_ms": 66.15545000095153,
+      "latency_std_ms": 14.451342441431548,
+      "throughput_fps": 30.231825193105532,
+      "speedup": 3.0151157613623676,
+      "batch_size": 2
+    },
+    {
+      "retention_rate": 0.1,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "latency_ms": 48.79866000119364,
+      "latency_std_ms": 24.58683533715055,
+      "throughput_fps": 40.984731956801255,
+      "speedup": 4.0875372396088325,
+      "batch_size": 2
+    }
+  ],
+  "efficiency_points": [
+    {
+      "retention_rate": 1.0,
+      "mode": "full",
+      "architecture": "resnet18",
+      "accuracy_pct": 99.84,
+      "gflops": 1.819065856,
+      "latency_ms": 113.77708999934839,
+      "throughput_fps": 17.578231259135332,
+      "flop_reduction_pct": 0.0,
+      "speedup": 1.0,
+      "accuracy_per_gflop": 54.88531361890397
+    },
+    {
+      "retention_rate": 0.75,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "accuracy_pct": 99.84,
+      "gflops": 1.819116032,
+      "latency_ms": 108.73891000082949,
+      "throughput_fps": 18.39268022812389,
+      "flop_reduction_pct": -0.0027583388382934615,
+      "speedup": 1.0463328168222439,
+      "accuracy_per_gflop": 54.88379973773988
+    },
+    {
+      "retention_rate": 0.5,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "accuracy_pct": 99.84,
+      "gflops": 1.819116032,
+      "latency_ms": 103.32672000076855,
+      "throughput_fps": 19.35607749849336,
+      "flop_reduction_pct": -0.0027583388382934615,
+      "speedup": 1.1011390857902208,
+      "accuracy_per_gflop": 54.88379973773988
+    },
+    {
+      "retention_rate": 0.25,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "accuracy_pct": 99.69,
+      "gflops": 1.819116032,
+      "latency_ms": 95.57847999676596,
+      "throughput_fps": 20.925212454390074,
+      "flop_reduction_pct": -0.0027583388382934615,
+      "speedup": 1.1904048903393127,
+      "accuracy_per_gflop": 54.80134210592236
+    },
+    {
+      "retention_rate": 0.1,
+      "mode": "masked",
+      "architecture": "resnet18",
+      "accuracy_pct": 98.59,
+      "gflops": 1.819116032,
+      "latency_ms": 92.12776999775087,
+      "throughput_fps": 21.708980908241088,
+      "flop_reduction_pct": -0.0027583388382934615,
+      "speedup": 1.2349923372955411,
+      "accuracy_per_gflop": 54.19665280592723
+    },
+    {
+      "retention_rate": 1.0,
+      "mode": "full",
+      "architecture": "vit_small_patch16_224",
+      "accuracy_pct": 100.0,
+      "gflops": 4.25067456,
+      "latency_ms": 201.47893999819644,
+      "throughput_fps": 9.926595802111642,
+      "flop_reduction_pct": 0.0,
+      "speedup": 1.0,
+      "accuracy_per_gflop": 23.525677769130365
+    },
+    {
+      "retention_rate": 0.75,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "accuracy_pct": 100.0,
+      "gflops": 4.250724736,
+      "latency_ms": 215.85754999832716,
+      "throughput_fps": 9.265369684847714,
+      "flop_reduction_pct": -0.0011804244077540105,
+      "speedup": 0.9333884313972703,
+      "accuracy_per_gflop": 23.52540006956593
+    },
+    {
+      "retention_rate": 0.5,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "accuracy_pct": 97.81,
+      "gflops": 4.250724736,
+      "latency_ms": 200.14229999942472,
+      "throughput_fps": 9.992890058751941,
+      "flop_reduction_pct": -0.0011804244077540105,
+      "speedup": 1.006678448277928,
+      "accuracy_per_gflop": 23.010193808042434
+    },
+    {
+      "retention_rate": 0.25,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "accuracy_pct": 82.5,
+      "gflops": 4.250724736,
+      "latency_ms": 201.17897000018274,
+      "throughput_fps": 9.94139695614399,
+      "flop_reduction_pct": -0.0011804244077540105,
+      "speedup": 1.001491060412594,
+      "accuracy_per_gflop": 19.40845505739189
+    },
+    {
+      "retention_rate": 0.1,
+      "mode": "masked",
+      "architecture": "vit_small_patch16_224",
+      "accuracy_pct": 31.25,
+      "gflops": 4.250724736,
+      "latency_ms": 199.98832999990555,
+      "throughput_fps": 10.000583534053936,
+      "flop_reduction_pct": -0.0011804244077540105,
+      "speedup": 1.007453484902302,
+      "accuracy_per_gflop": 7.351687521739352
+    },
+    {
+      "retention_rate": 1.0,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "accuracy_pct": 100.0,
+      "gflops": 4.25067456,
+      "latency_ms": 199.466339997889,
+      "throughput_fps": 10.026754388841578,
+      "flop_reduction_pct": 0.0,
+      "speedup": 1.0,
+      "accuracy_per_gflop": 23.525677769130365
+    },
+    {
+      "retention_rate": 0.75,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "accuracy_pct": 100.0,
+      "gflops": 3.207873024,
+      "latency_ms": 146.96614000131376,
+      "throughput_fps": 13.608576778175719,
+      "flop_reduction_pct": 24.5326129130902,
+      "speedup": 1.3572265012614875,
+      "accuracy_per_gflop": 31.173303697447096
+    },
+    {
+      "retention_rate": 0.5,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "accuracy_pct": 99.69,
+      "gflops": 2.165071488,
+      "latency_ms": 103.44020000047749,
+      "throughput_fps": 19.33484273996732,
+      "flop_reduction_pct": 49.0652258261804,
+      "speedup": 1.928325157888019,
+      "accuracy_per_gflop": 46.04466898785376
+    },
+    {
+      "retention_rate": 0.25,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "accuracy_pct": 96.56,
+      "gflops": 1.122269952,
+      "latency_ms": 66.15545000095153,
+      "throughput_fps": 30.231825193105532,
+      "flop_reduction_pct": 73.5978387392706,
+      "speedup": 3.0151157613623676,
+      "accuracy_per_gflop": 86.03990495149603
+    },
+    {
+      "retention_rate": 0.1,
+      "mode": "token_drop",
+      "architecture": "vit_small_patch16_224",
+      "accuracy_pct": 68.12,
+      "gflops": 0.505101696,
+      "latency_ms": 48.79866000119364,
+      "throughput_fps": 40.984731956801255,
+      "flop_reduction_pct": 88.11714025926275,
+      "speedup": 4.0875372396088325,
+      "accuracy_per_gflop": 134.86393045094826
+    }
+  ]
+}

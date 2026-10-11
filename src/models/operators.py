@@ -133,7 +133,7 @@ class MaskOperator(nn.Module):
     ) -> torch.Tensor:
         """Core top-k logic (reused by hard_mask and apply())."""
         B, _, N_H, N_W = scores.shape
-        n_keep = max(1, round(N_H * N_W * self.retention_rate))
+        n_keep = max(1, round(float(N_H) * float(N_W) * float(self.retention_rate)))
 
         flat   = scores.view(B, -1)
         _, idx = torch.topk(flat, n_keep, dim=1, largest=True, sorted=False)
@@ -141,7 +141,7 @@ class MaskOperator(nn.Module):
         mask_flat = torch.zeros_like(flat)
         mask_flat.scatter_(1, idx, 1.0)
 
-        patch_mask = mask_flat.view(B, 1, N_H, N_W)
+        patch_mask = mask_flat.view(B, 1, int(N_H), int(N_W))
         return F.interpolate(patch_mask, size=out_size, mode='nearest')
 
     # -- Soft mask (training) -------------------------------------------------
@@ -320,8 +320,8 @@ class TokenDropOperator(nn.Module):
 
         n_total = scores_flat.shape[1]
         if k is None:
-            k = max(1, round(n_total * self.retention_rate))
-        k = min(k, n_total)
+            k = max(1, round(float(n_total) * float(self.retention_rate)))
+        k = min(k, int(n_total))
 
         # Sort indices to preserve spatial ordering for positional stability
         _, topk_idx = torch.topk(scores_flat, k, dim=1, largest=True, sorted=False)

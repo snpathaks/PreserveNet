@@ -91,6 +91,8 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description='Step 10: PreserveNet full retention sweep + Pareto curve'
     )
+    p.add_argument('--from_json', type=str, default=None,
+                   help='Path to existing pareto_results.json to re-generate plot and summary without re-running sweep')
     p.add_argument('--config', type=str, default=None,
                    help='Optional YAML config (configs/sweep_retention.yaml)')
     p.add_argument('--arch', type=str, default='resnet18',
@@ -399,8 +401,8 @@ def plot_pareto(
     )
 
     fig.suptitle(
-        'PreserveNet Step 10 — Retention Sweep Pareto Curves\n'
-        'Imagenette · ResNet-18 backbone · 16 × 16 patches',
+        'PreserveNet Step 10 - Retention Sweep Pareto Curves\n'
+        'Imagenette | ResNet-18 backbone | 16x16 patches',
         fontsize=13, fontweight='bold', y=0.98,
     )
 
@@ -408,7 +410,7 @@ def plot_pareto(
         ax_agree, methods, retention_rates, results,
         metric='agreement',
         ylabel='Agreement Rate (%)',
-        title='Panel A — Agreement Rate  (primary metric)',
+        title='Panel A - Agreement Rate  (primary metric)',
         annotate_preservenet=True,
     )
 
@@ -416,7 +418,7 @@ def plot_pareto(
         ax_acc, methods, retention_rates, results,
         metric='top1_acc',
         ylabel='Top-1 Accuracy (%)',
-        title='Panel B — Top-1 Accuracy  (secondary metric)',
+        title='Panel B - Top-1 Accuracy  (secondary metric)',
     )
 
     ax_agree.set_xlabel('')   # shared x-axis; only label the bottom panel
@@ -425,14 +427,14 @@ def plot_pareto(
     fig.text(
         0.5, 0.01,
         'Agreement Rate = fraction of images where masked prediction == full-image prediction.\n'
-        'PreserveNet learned reducer (★) is trained with λ_agree loss to maximise this metric.',
+        'PreserveNet learned reducer (*) is trained with lambda_agree loss to maximise this metric.',
         ha='center', fontsize=8, color='#555555', style='italic',
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, bbox_inches='tight')
     plt.close(fig)
-    print(f'  [plot] Saved Pareto figure → {output_path}')
+    print(f'  [plot] Saved Pareto figure -> {output_path}')
 
 
 # =============================================================================
@@ -449,7 +451,7 @@ def run_sweep(args: argparse.Namespace) -> Dict:
     retention_rates: List[float] = getattr(
         args, 'retention_rates_yaml', [1.0, 0.75, 0.50, 0.25, 0.10]
     )
-    retention_rates = sorted(retention_rates, reverse=True)   # high → low
+    retention_rates = sorted(retention_rates, reverse=True)   # high -> low
 
     max_batches = None
     if args.full or args.max_val_batches <= 0:
@@ -457,14 +459,14 @@ def run_sweep(args: argparse.Namespace) -> Dict:
     else:
         max_batches = args.max_val_batches
 
-    # ── Banner ────────────────────────────────────────────────────────────────
+    # -- Banner ----------------------------------------------------------------
     print()
     print('=' * 78)
-    print('  PreserveNet  |  Step 10 — Full Retention Sweep + Pareto Curve')
+    print('  PreserveNet  |  Step 10 - Full Retention Sweep + Pareto Curve')
     print('=' * 78)
     print(f'  Device            : {device}')
     print(f'  Backbone          : {args.arch}')
-    print(f'  Patch size        : {args.patch_size}×{args.patch_size}')
+    print(f'  Patch size        : {args.patch_size}x{args.patch_size}')
     print(f'  Batch size        : {args.batch_size}')
     print(f'  Max val batches   : {max_batches or "Full val set"}')
     print(f'  Retention rates   : {[f"{r:.0%}" for r in retention_rates]}')
@@ -473,8 +475,8 @@ def run_sweep(args: argparse.Namespace) -> Dict:
     print('=' * 78)
     print()
 
-    # ── 1. Data ───────────────────────────────────────────────────────────────
-    print('[1/4] Loading Imagenette validation set …')
+    # -- 1. Data ---------------------------------------------------------------
+    print('[1/4] Loading Imagenette validation set ...')
     _, val_loader, meta = get_imagenette_loaders(
         data_dir=pathlib.Path(args.data_dir),
         batch_size=args.batch_size,
@@ -484,7 +486,7 @@ def run_sweep(args: argparse.Namespace) -> Dict:
     print(f'  {meta.n_val:,} val images, {meta.n_classes} classes')
 
     # Cache batches in RAM for multi-pass evaluation
-    print('  Caching validation batches …')
+    print('  Caching validation batches ...')
     val_batches: List[Tuple[torch.Tensor, torch.Tensor]] = []
     for b_idx, (imgs, labels) in enumerate(val_loader):
         if max_batches is not None and b_idx >= max_batches:
@@ -493,21 +495,20 @@ def run_sweep(args: argparse.Namespace) -> Dict:
     n_eval = sum(b[0].size(0) for b in val_batches)
     print(f'  Cached {n_eval} images in {len(val_batches)} batches.\n')
 
-    # ── 2. Classifier ─────────────────────────────────────────────────────────
-    print(f'[2/4] Loading zero-shot classifier: {args.arch} …')
+    # -- 2. Classifier ---------------------------------------------------------
+    print(f'[2/4] Loading zero-shot classifier: {args.arch} ...')
     model = build_imagenette_classifier(arch=args.arch, freeze=True)
     model.to(device).eval()
     print('  Done.\n')
 
-    # ── 3. Learned reducer ────────────────────────────────────────────────────
-    print('[3/4] Loading learned PatchScoreReducer …')
+    # -- 3. Learned reducer ----------------------------------------------------
+    print('[3/4] Loading learned PatchScoreReducer ...')
     scorer = PatchScorer().to(device)
     ckpt_path = pathlib.Path(args.reducer_checkpoint)
     reducer_loaded = False
     if ckpt_path.exists():
         try:
             ckpt = torch.load(str(ckpt_path), map_location=device, weights_only=False)
-            # Checkpoint saved by trainer has key 'scorer'
             if isinstance(ckpt, dict) and 'scorer' in ckpt:
                 scorer.load_state_dict(ckpt['scorer'])
             else:
@@ -521,12 +522,12 @@ def run_sweep(args: argparse.Namespace) -> Dict:
     scorer.eval()
     print()
 
-    # ── 4. Sweep ──────────────────────────────────────────────────────────────
-    print('[4/4] Running retention sweep …\n')
+    # -- 4. Sweep --------------------------------------------------------------
+    print('[4/4] Running retention sweep ...\n')
     results: Dict[str, Dict[float, Dict[str, float]]] = {}
 
-    # ── A. Uniform Random ────────────────────────────────────────────────────
-    print('  [A] Uniform Random …')
+    # -- A. Uniform Random ----------------------------------------------------
+    print('  [A] Uniform Random ...')
     results['Uniform Random'] = {}
     for r in retention_rates:
         t0 = time.perf_counter()
@@ -539,8 +540,8 @@ def run_sweep(args: argparse.Namespace) -> Dict:
               f'acc={m["top1_acc"]*100:.2f}%  ({time.perf_counter()-t0:.1f}s, n={m["n_samples"]})')
     print()
 
-    # ── B. Uniform Grid ──────────────────────────────────────────────────────
-    print('  [B] Uniform Grid …')
+    # -- B. Uniform Grid ------------------------------------------------------
+    print('  [B] Uniform Grid ...')
     results['Uniform Grid'] = {}
     for r in retention_rates:
         t0 = time.perf_counter()
@@ -551,8 +552,8 @@ def run_sweep(args: argparse.Namespace) -> Dict:
               f'acc={m["top1_acc"]*100:.2f}%  ({time.perf_counter()-t0:.1f}s, n={m["n_samples"]})')
     print()
 
-    # ── C. Random Drop ───────────────────────────────────────────────────────
-    print('  [C] Random Drop …')
+    # -- C. Random Drop -------------------------------------------------------
+    print('  [C] Random Drop ...')
     results['Random Drop'] = {}
     for r in retention_rates:
         t0 = time.perf_counter()
@@ -565,8 +566,8 @@ def run_sweep(args: argparse.Namespace) -> Dict:
               f'acc={m["top1_acc"]*100:.2f}%  ({time.perf_counter()-t0:.1f}s, n={m["n_samples"]})')
     print()
 
-    # ── D. GradCAM (single-pass over all rates) ───────────────────────────────
-    print(f'  [D] GradCAM (target_layer={args.gradcam_target_layer}) …')
+    # -- D. GradCAM (single-pass over all rates) -------------------------------
+    print(f'  [D] GradCAM (target_layer={args.gradcam_target_layer}) ...')
     t0_cam = time.perf_counter()
     cam_results = eval_gradcam_all_rates(
         model, val_batches, device, retention_rates,
@@ -580,8 +581,8 @@ def run_sweep(args: argparse.Namespace) -> Dict:
               f'acc={m["top1_acc"]*100:.2f}%  (n={m["n_samples"]})')
     print(f'      GradCAM total: {time.perf_counter()-t0_cam:.1f}s\n')
 
-    # ── E. Gradient Saliency (single-pass over all rates) ────────────────────
-    print('  [E] Gradient Saliency (input gradient) …')
+    # -- E. Gradient Saliency (single-pass over all rates) --------------------
+    print('  [E] Gradient Saliency (input gradient) ...')
     t0_sal = time.perf_counter()
     sal_results = eval_grad_saliency_all_rates(
         model, val_batches, device, retention_rates,
@@ -594,8 +595,8 @@ def run_sweep(args: argparse.Namespace) -> Dict:
               f'acc={m["top1_acc"]*100:.2f}%  (n={m["n_samples"]})')
     print(f'      Saliency total: {time.perf_counter()-t0_sal:.1f}s\n')
 
-    # ── F. PreserveNet learned reducer ───────────────────────────────────────
-    print('  [F] PreserveNet (learned PatchScoreReducer) …')
+    # -- F. PreserveNet learned reducer ---------------------------------------
+    print('  [F] PreserveNet (learned PatchScoreReducer) ...')
     results['PreserveNet'] = {}
     for r in retention_rates:
         t0 = time.perf_counter()
@@ -604,7 +605,7 @@ def run_sweep(args: argparse.Namespace) -> Dict:
             retention_rate=r,
             patch_size=args.patch_size,
             device=device,
-            eval_mode=False,   # scorer already in eval mode
+            eval_mode=False,
         )
         m = eval_simple_reducer(reducer, model, val_batches, device)
         results['PreserveNet'][r] = m
@@ -644,7 +645,7 @@ def print_summary(
 
     print()
     print('=' * (14 + col_w * len(methods) + 2))
-    print('  STEP 10 RESULTS — AGREEMENT RATE (%)')
+    print('  STEP 10 RESULTS - AGREEMENT RATE (%)')
     print('=' * (14 + col_w * len(methods) + 2))
     header = f'  {"Retention":>10}  ' + '  '.join(f'{m:>{col_w}}' for m in methods)
     print(header)
@@ -659,7 +660,7 @@ def print_summary(
 
     print()
     print('=' * (14 + col_w * len(methods) + 2))
-    print('  STEP 10 RESULTS — TOP-1 ACCURACY (%)')
+    print('  STEP 10 RESULTS - TOP-1 ACCURACY (%)')
     print('=' * (14 + col_w * len(methods) + 2))
     print(header)
     print('  ' + '-' * (12 + col_w * len(methods)))
@@ -684,16 +685,26 @@ def main() -> None:
     out_dir = pathlib.Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    sweep_output, results = run_sweep(args)
-
-    # Save JSON
-    json_path = out_dir / args.results_name
-    with open(json_path, 'w') as fh:
-        json.dump(sweep_output, fh, indent=2)
-    print(f'  [json] Results saved → {json_path}')
+    if args.from_json:
+        json_path = pathlib.Path(args.from_json)
+        with open(json_path) as fh:
+            sweep_output = json.load(fh)
+        retention_rates = [float(r) for r in sweep_output['retention_rates']]
+        results = {
+            m: {float(r): v for r, v in vals.items()}
+            for m, vals in sweep_output['results'].items()
+        }
+        print(f'  [json] Loaded precomputed results from {json_path}')
+    else:
+        sweep_output, results = run_sweep(args)
+        # Save JSON
+        json_path = out_dir / args.results_name
+        with open(json_path, 'w') as fh:
+            json.dump(sweep_output, fh, indent=2)
+        print(f'  [json] Results saved -> {json_path}')
+        retention_rates = sweep_output['retention_rates']
 
     # Summary table
-    retention_rates = sweep_output['retention_rates']
     print_summary(results, retention_rates)
 
     # Plot
@@ -713,7 +724,7 @@ def main() -> None:
         best_base_name = max(competitors, key=lambda m: results[m][r]['agreement'])
         best_base_val  = results[best_base_name][r]['agreement'] * 100
         delta = pn_agree - best_base_val
-        flag  = '▲' if delta >= 0 else '▼'
+        flag  = '+' if delta >= 0 else '-'
         print(f'  r={r:.0%}  PreserveNet={pn_agree:.2f}%  '
               f'Best baseline={best_base_name} ({best_base_val:.2f}%)  '
               f'{flag}{abs(delta):.2f} pp')

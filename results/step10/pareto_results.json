@@ -1,0 +1,180 @@
+{
+  "retention_rates": [
+    1.0,
+    0.75,
+    0.5,
+    0.25,
+    0.1
+  ],
+  "results": {
+    "Uniform Random": {
+      "1.0": {
+        "agreement": 1.0,
+        "top1_acc": 0.9975,
+        "n_samples": 800
+      },
+      "0.75": {
+        "agreement": 0.9925,
+        "top1_acc": 0.99375,
+        "n_samples": 800
+      },
+      "0.5": {
+        "agreement": 0.97125,
+        "top1_acc": 0.9725,
+        "n_samples": 800
+      },
+      "0.25": {
+        "agreement": 0.7925,
+        "top1_acc": 0.79125,
+        "n_samples": 800
+      },
+      "0.1": {
+        "agreement": 0.4625,
+        "top1_acc": 0.46375,
+        "n_samples": 800
+      }
+    },
+    "Uniform Grid": {
+      "1.0": {
+        "agreement": 1.0,
+        "top1_acc": 0.9975,
+        "n_samples": 800
+      },
+      "0.75": {
+        "agreement": 0.9825,
+        "top1_acc": 0.98125,
+        "n_samples": 800
+      },
+      "0.5": {
+        "agreement": 0.94375,
+        "top1_acc": 0.945,
+        "n_samples": 800
+      },
+      "0.25": {
+        "agreement": 0.1425,
+        "top1_acc": 0.1425,
+        "n_samples": 800
+      },
+      "0.1": {
+        "agreement": 0.36125,
+        "top1_acc": 0.3625,
+        "n_samples": 800
+      }
+    },
+    "Random Drop": {
+      "1.0": {
+        "agreement": 1.0,
+        "top1_acc": 0.9975,
+        "n_samples": 800
+      },
+      "0.75": {
+        "agreement": 0.9925,
+        "top1_acc": 0.99375,
+        "n_samples": 800
+      },
+      "0.5": {
+        "agreement": 0.97125,
+        "top1_acc": 0.9725,
+        "n_samples": 800
+      },
+      "0.25": {
+        "agreement": 0.7925,
+        "top1_acc": 0.79125,
+        "n_samples": 800
+      },
+      "0.1": {
+        "agreement": 0.4625,
+        "top1_acc": 0.46375,
+        "n_samples": 800
+      }
+    },
+    "GradCAM": {
+      "1.0": {
+        "agreement": 1.0,
+        "top1_acc": 0.9975,
+        "n_samples": 800
+      },
+      "0.75": {
+        "agreement": 1.0,
+        "top1_acc": 0.9975,
+        "n_samples": 800
+      },
+      "0.5": {
+        "agreement": 0.9975,
+        "top1_acc": 0.99625,
+        "n_samples": 800
+      },
+      "0.25": {
+        "agreement": 0.99625,
+        "top1_acc": 0.995,
+        "n_samples": 800
+      },
+      "0.1": {
+        "agreement": 0.985,
+        "top1_acc": 0.98375,
+        "n_samples": 800
+      }
+    },
+    "Grad Saliency": {
+      "1.0": {
+        "agreement": 1.0,
+        "top1_acc": 0.9975,
+        "n_samples": 800
+      },
+      "0.75": {
+        "agreement": 0.99625,
+        "top1_acc": 0.99625,
+        "n_samples": 800
+      },
+      "0.5": {
+        "agreement": 0.995,
+        "top1_acc": 0.9925,
+        "n_samples": 800
+      },
+      "0.25": {
+        "agreement": 0.9825,
+        "top1_acc": 0.9825,
+        "n_samples": 800
+      },
+      "0.1": {
+        "agreement": 0.92625,
+        "top1_acc": 0.9275,
+        "n_samples": 800
+      }
+    },
+    "PreserveNet": {
+      "1.0": {
+        "agreement": 1.0,
+        "top1_acc": 0.9975,
+        "n_samples": 800
+      },
+      "0.75": {
+        "agreement": 0.99,
+        "top1_acc": 0.98875,
+        "n_samples": 800
+      },
+      "0.5": {
+        "agreement": 0.96,
+        "top1_acc": 0.95875,
+        "n_samples": 800
+      },
+      "0.25": {
+        "agreement": 0.84125,
+        "top1_acc": 0.84,
+        "n_samples": 800
+      },
+      "0.1": {
+        "agreement": 0.59875,
+        "top1_acc": 0.6,
+        "n_samples": 800
+      }
+    }
+  },
+  "meta": {
+    "arch": "resnet18",
+    "patch_size": 16,
+    "n_eval": 800,
+    "reducer_ckpt": "E:\\PreserveNet\\PreserveNet\\checkpoints\\best.pt",
+    "reducer_loaded": true
+  }
+}

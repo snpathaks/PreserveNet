@@ -1,33 +1,40 @@
 # PreserveNet — Pinned Dependencies
 # Install with: pip install -r requirements.txt
+#
+# Step coverage:
+#   Steps 1–5  : torch, torchvision, timm, numpy, Pillow, tqdm
+#   Steps 6–7  : einops (Gumbel-Softmax helpers)
+#   Step 8     : torch (TokenDropOperator, ViT token pruning)
+#   Step 9     : fvcore (FLOP counting), scipy, pandas
+#   Step 10    : matplotlib, seaborn (Pareto curve), pyyaml (sweep config)
 
-# Core deep learning framework
+# ── Core deep learning ────────────────────────────────────────────────────────
 torch==2.4.0
-torchvision==0.19.0          # matches torch 2.4.0
-torchaudio==2.4.0            # matches torch 2.4.0
+torchvision==0.19.0          # must match torch 2.4.0
+torchaudio==2.4.0            # must match torch 2.4.0
 
-# Vision model library (ViT, Swin, ConvNeXt, etc.)
+# ── Vision model library (ViT, Swin, ConvNeXt, ResNet, …) ────────────────────
 timm==1.0.9
 
-# Tensor manipulation helpers
-einops==0.8.0
-
-# Facebook AI Research utilities (FLOPs counting, etc.)
-fvcore==0.1.5.post20221221
-
-# Common scientific / ML utilities
+# ── Tensor / array helpers ────────────────────────────────────────────────────
+einops==0.8.0                # used in MaskOperator Gumbel-Softmax (Step 6)
 numpy>=1.24,<2.0
 scipy>=1.11
 scikit-learn>=1.4
 pandas>=2.1
-matplotlib>=3.8
-seaborn>=0.13
 Pillow>=10.0
 
-# Experiment tracking & config
+# ── FLOPs / complexity benchmarking (Step 9) ─────────────────────────────────
+fvcore==0.1.5.post20221221
+
+# ── Plotting — Pareto curve & benchmark figures (Step 10) ────────────────────
+matplotlib>=3.8
+seaborn>=0.13
+
+# ── Config & experiment tracking ─────────────────────────────────────────────
 tqdm>=4.66
-pyyaml>=6.0
+pyyaml>=6.0                  # required: configs/sweep_retention.yaml (Step 10)
 omegaconf>=2.3
 
-# Notebook / Colab helpers
+# ── Notebook / Colab helpers ──────────────────────────────────────────────────
 ipywidgets>=8.0

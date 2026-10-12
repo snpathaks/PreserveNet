@@ -1,0 +1,59 @@
+# configs/sweep_retention.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Step 10 — Full Retention Sweep Configuration for PreserveNet Pareto Analysis
+#
+# This config drives src/eval/pareto.py.
+# Run from repo root (e:\PreserveNet):
+#
+#   python PreserveNet/src/eval/pareto.py
+#   python PreserveNet/src/eval/pareto.py --config PreserveNet/configs/sweep_retention.yaml
+#
+# All settings can be overridden on the command line.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Dataset / Data ────────────────────────────────────────────────────────────
+dataset: imagenette           # 'imagenette' | 'cifar10'
+data_dir: null                # null → auto-detect (repo_root/../data)
+
+# ── Backbone classifier ───────────────────────────────────────────────────────
+arch: resnet18                # timm model name; 'resnet18' | 'vit_small_patch16_224'
+patch_size: 16                # spatial patch size in pixels
+
+# ── Retention rates to sweep (the four mandated + 100% anchor) ────────────────
+retention_rates:
+  - 1.00   # full image (anchor / ceiling)
+  - 0.75   # 75 % patches kept
+  - 0.50   # 50 %
+  - 0.25   # 25 %
+  - 0.10   # 10 %
+
+# ── Evaluation scope ──────────────────────────────────────────────────────────
+batch_size: 32
+max_val_batches: 0            # 0 = full validation set (3,925 images for Imagenette)
+num_workers: 0                # data-loader workers (0 = main process)
+
+# ── Learned reducer checkpoint ───────────────────────────────────────────────
+# Path to a trained PatchScorer checkpoint saved by train_preservenet.py.
+# The checkpoint dict must contain key 'scorer' (state_dict).
+# Set to null to use a randomly-initialised scorer (ablation).
+reducer_checkpoint: checkpoints/best.pt
+
+# ── Baselines to include in the Pareto plot ───────────────────────────────────
+# All five standard baselines are always computed; set to false to skip one.
+baselines:
+  uniform_random: true
+  uniform_grid:   true
+  random_drop:    true
+  gradcam:        true
+  grad_saliency:  true
+
+# GradCAM-specific settings
+gradcam_target_layer: layer4  # timm ResNet target layer
+
+# ── Output ────────────────────────────────────────────────────────────────────
+output_dir: results/step10    # where to write JSON + PNG artefacts
+figure_name: pareto_curve.png # headline figure filename
+results_name: pareto_results.json
+
+# ── Reproducibility ───────────────────────────────────────────────────────────
+seed: 42

@@ -21,6 +21,10 @@ import sys
 import time
 from typing import Dict, List, Tuple
 
+import builtins
+_orig_print = builtins.print
+builtins.print = lambda *a, **kw: _orig_print(*a, **{**kw, 'flush': True})
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -357,28 +361,29 @@ def run_step11_ablations():
         yy, xx = torch.meshgrid(grid_y, grid_x, indexing='ij')
         grid_scores = (torch.sin(yy * 3.14159 * 13) * torch.sin(xx * 3.14159 * 13)).view(1, 196)
 
-        for imgs, targets in batches:
-            B = imgs.size(0)
-            # ResNet-trained scorer on ViT
-            scores_res = scorer_with_agree(imgs)
-            logits_res = op.forward_vit(vit_clf, imgs, scores=scores_res)
-            c_res += (logits_res.argmax(1) == targets).sum().item()
+        with torch.no_grad():
+            for imgs, targets in batches:
+                B = imgs.size(0)
+                # ResNet-trained scorer on ViT
+                scores_res = scorer_with_agree(imgs)
+                logits_res = op.forward_vit(vit_clf, imgs, scores=scores_res)
+                c_res += (logits_res.argmax(1) == targets).sum().item()
 
-            # ViT-native scorer on ViT
-            scores_vit = scorer_vit_native(imgs)
-            logits_vit = op.forward_vit(vit_clf, imgs, scores=scores_vit)
-            c_vit += (logits_vit.argmax(1) == targets).sum().item()
+                # ViT-native scorer on ViT
+                scores_vit = scorer_vit_native(imgs)
+                logits_vit = op.forward_vit(vit_clf, imgs, scores=scores_vit)
+                c_vit += (logits_vit.argmax(1) == targets).sum().item()
 
-            # Random drop
-            rand_scores = torch.rand(B, 196, device=device)
-            logits_rand = op.forward_vit(vit_clf, imgs, scores=rand_scores)
-            c_rand += (logits_rand.argmax(1) == targets).sum().item()
+                # Random drop
+                rand_scores = torch.rand(B, 196, device=device)
+                logits_rand = op.forward_vit(vit_clf, imgs, scores=rand_scores)
+                c_rand += (logits_rand.argmax(1) == targets).sum().item()
 
-            # Grid drop
-            logits_grid = op.forward_vit(vit_clf, imgs, scores=grid_scores.expand(B, -1))
-            c_grid += (logits_grid.argmax(1) == targets).sum().item()
+                # Grid drop
+                logits_grid = op.forward_vit(vit_clf, imgs, scores=grid_scores.expand(B, -1))
+                c_grid += (logits_grid.argmax(1) == targets).sum().item()
 
-            total += B
+                total += B
 
         acc_res = c_res / total
         acc_vit = c_vit / total
@@ -431,7 +436,7 @@ def run_step11_ablations():
     total_agreement = 0.0
     n_qual_eval = 0
 
-    for imgs, targets in batches[:5]:
+    for imgs, targets in batches[:3]:
         with torch.no_grad():
             scores = scorer_with_agree(imgs)
             mask_reducer = op_mask.hard_mask(scores, imgs.shape[-2:])  # (B, 1, 224, 224)

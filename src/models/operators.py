@@ -188,6 +188,31 @@ class MaskOperator(nn.Module):
         )
         return probs_2[:, :1, :, :]  # "keep" channel
 
+    def ste_mask(self, scores: torch.Tensor) -> torch.Tensor:
+        """
+        Straight-Through Estimator (STE) binary mask for training without Gumbel noise.
+
+        Forward pass: deterministic hard top-k thresholding (binary {0, 1}).
+        Backward pass: gradient flows through continuous sigmoid relaxation:
+            m_ste = sigmoid(scores) + (m_hard - sigmoid(scores)).detach()
+
+        Args:
+            scores: (B, 1, N_H, N_W) raw logits.
+
+        Returns:
+            mask: (B, 1, N_H, N_W) in {0.0, 1.0} with STE gradients.
+        """
+        B, _, N_H, N_W = scores.shape
+        n_keep = max(1, round(float(N_H) * float(N_W) * float(self.retention_rate)))
+        flat = scores.view(B, -1)
+        _, idx = torch.topk(flat, n_keep, dim=1, largest=True, sorted=False)
+        m_hard = torch.zeros_like(flat)
+        m_hard.scatter_(1, idx, 1.0)
+        m_hard = m_hard.view(B, 1, N_H, N_W)
+
+        m_soft = torch.sigmoid(scores)
+        return m_soft + (m_hard - m_soft).detach()
+
     # -- Combined apply() convenience -----------------------------------------
 
     def apply(

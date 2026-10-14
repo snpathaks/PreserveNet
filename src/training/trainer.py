@@ -1,4 +1,4 @@
-﻿"""
+"""
 src/training/trainer.py
 -----------------------
 PreserveNet end-to-end trainer -- Step 7.
@@ -111,6 +111,7 @@ class TrainerConfig:
     eval_every:       int   = 1
     device:           str   = 'auto'
     base_channels:    int   = 32
+    estimator:        str   = 'gumbel'   # 'gumbel' or 'ste'
     max_train_batches: Optional[int] = None
     max_val_batches:   Optional[int] = None
 
@@ -318,7 +319,7 @@ class PreserveNetTrainer:
             lam_agree  = self.lam_agree_sched.step()
 
             # ── Forward ─────────────────────────────────────────────────────
-            out = self.pipeline(imgs, tau=tau, hard=True)
+            out = self.pipeline(imgs, tau=tau, hard=True, estimator=self.cfg.estimator)
 
             # ── Losses ──────────────────────────────────────────────────────
             l_task   = self.loss_task(out.masked_logits, labels)

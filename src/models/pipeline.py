@@ -1,4 +1,4 @@
-﻿"""
+"""
 src/models/pipeline.py
 -----------------------
 PreserveNet end-to-end forward pipeline -- Step 7.
@@ -127,19 +127,21 @@ class PreserveNetPipeline(nn.Module):
 
     def forward(
         self,
-        x:    torch.Tensor,
-        tau:  float = 1.0,
-        hard: bool  = False,
+        x:         torch.Tensor,
+        tau:       float = 1.0,
+        hard:      bool  = False,
+        estimator: str   = 'gumbel',
     ) -> PipelineOutput:
         """
         Full pipeline forward pass.
 
         Args
         ----
-        x:    (B, 3, H, W) normalised input batch.
-        tau:  Gumbel-Softmax temperature (annealed during training).
-        hard: If True, straight-through hard Gumbel sample
-              (better for training; use False for pure soft).
+        x:         (B, 3, H, W) normalised input batch.
+        tau:       Gumbel-Softmax temperature (annealed during training).
+        hard:      If True, straight-through hard sample.
+        estimator: Relaxation method: 'gumbel' (stochastic Gumbel-Softmax)
+                   or 'ste' (deterministic Straight-Through Estimator).
 
         Returns
         -------
@@ -154,14 +156,15 @@ class PreserveNetPipeline(nn.Module):
         scores = self.scorer(x)                                   # (B, 1, N_H, N_W)
 
         # 3. Differentiable mask
-        soft_mask = self.operator.gumbel_mask(scores) if tau > 0  \
-                    else torch.sigmoid(scores)
-        # Override tau by re-running gumbel with correct temp
-        if tau > 0:
+        if estimator == 'ste':
+            soft_mask = self.operator.ste_mask(scores)
+        elif tau > 0:
             drop_logit = torch.zeros_like(scores)
             logits_2   = torch.cat([scores, drop_logit], dim=1)   # (B, 2, N_H, N_W)
             probs_2    = F.gumbel_softmax(logits_2, tau=tau, hard=hard, dim=1)
             soft_mask  = probs_2[:, :1, :, :]                     # (B, 1, N_H, N_W)
+        else:
+            soft_mask = torch.sigmoid(scores)
 
         # 4. Upsample to pixel resolution
         pixel_mask = F.interpolate(soft_mask, size=(H, W), mode='nearest')  # (B,1,H,W)

@@ -46,6 +46,7 @@ def parse_args():
     p.add_argument('--tau_end',            type=float, default=0.5)
     p.add_argument('--agree_temp',         type=float, default=2.0)
     p.add_argument('--agree_direction',    default='forward', choices=['forward', 'reverse', 'symmetric'])
+    p.add_argument('--estimator',          default='gumbel', choices=['gumbel', 'ste'])
     p.add_argument('--base_channels',      type=int,   default=32)
     p.add_argument('--save_dir',           default=str(REPO_ROOT / 'checkpoints'))
     p.add_argument('--data_dir',           default=str(REPO_ROOT.parent / 'data'))
@@ -77,6 +78,7 @@ def main():
         tau_end           = args.tau_end,
         agree_temp        = args.agree_temp,
         agree_direction   = args.agree_direction,
+        estimator         = args.estimator,
         base_channels     = args.base_channels,
         save_dir          = args.save_dir,
         log_every         = args.log_every,

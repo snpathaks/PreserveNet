@@ -103,13 +103,37 @@ body, html, .gradio-container {
     border-radius: 14px !important;
 }
 
-/* Labels */
+/* Labels & Form Titles */
 label span, .block-title, .gr-form > label {
-    color: #9A9AA5 !important;
+    color: #FFFFFF !important;
     font-size: 13px !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.05em !important;
+}
+
+#image-input label, #image-input label span, #image-input .block-title, #image-input span {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+}
+
+#retention-slider label, #retention-slider label span, #retention-slider .block-title, #retention-slider span, #retention-slider input {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+}
+
+/* Clickable Examples Table Headers: "Input Image" & "Patches retained (%)" */
+.examples table th,
+.examples th,
+table th,
+.gr-samples-table th,
+.table-wrap th,
+.gallery th,
+th span,
+table thead tr th {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
 }
 
 /* Primary Reduce Button */
@@ -235,20 +259,29 @@ input[type="range"]::-moz-range-thumb {
     font-size: 13px;
     font-weight: 700;
     width: fit-content;
+    color: #FFFFFF !important;
+}
+
+.status-pill .status-text {
+    color: #FFFFFF !important;
 }
 
 .status-pill.badge-preserved {
-    background: rgba(61, 220, 151, 0.12);
-    color: #3DDC97;
-    border: 1px solid rgba(61, 220, 151, 0.4);
+    background: rgba(61, 220, 151, 0.15);
+    color: #FFFFFF !important;
+    border: 1px solid rgba(61, 220, 151, 0.5);
     box-shadow: 0 0 12px rgba(61, 220, 151, 0.2);
 }
 
 .status-pill.badge-changed {
-    background: rgba(255, 92, 92, 0.12);
-    color: #FF5C5C;
-    border: 1px solid rgba(255, 92, 92, 0.4);
+    background: rgba(255, 92, 92, 0.2);
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255, 92, 92, 0.5);
     box-shadow: 0 0 12px rgba(255, 92, 92, 0.2);
+}
+
+.status-pill.badge-changed .status-text {
+    color: #FFFFFF !important;
 }
 
 .status-dot {
@@ -439,10 +472,10 @@ def render_stats_html(kept: int, total: int, agree: bool, kl: float) -> str:
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-title">Prediction Invariance</div>
-            <div class="status-pill {badge_cls}">
+            <div class="stat-title" style="color: #FFFFFF !important;">Prediction Status</div>
+            <div class="status-pill {badge_cls}" style="color: #FFFFFF !important;">
                 <span class="status-dot"></span>
-                <span class="status-text">{status_text}</span>
+                <span class="status-text" style="color: #FFFFFF !important;">{status_text}</span>
             </div>
         </div>
     </div>
@@ -588,6 +621,7 @@ def build_app() -> gr.Blocks:
                 image_input = gr.Image(
                     type="pil",
                     label="Input Image",
+                    show_label=True,
                     elem_id="image-input",
                     height=280,
                 )
@@ -598,6 +632,7 @@ def build_app() -> gr.Blocks:
                     step=5,
                     value=25,
                     label="Patches retained (%)",
+                    show_label=True,
                     elem_id="retention-slider",
                 )
 

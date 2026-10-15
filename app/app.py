@@ -104,34 +104,63 @@ body, html, .gradio-container {
 }
 
 /* Labels & Form Titles */
-label span, .block-title, .gr-form > label {
+.block-label,
+.label-wrap,
+.wrap.default,
+label,
+label span,
+.block-title,
+.gr-form > label {
+    background-color: #15151B !important;
     color: #FFFFFF !important;
     font-size: 13px !important;
     font-weight: 700 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
+    border-color: #2A2A33 !important;
+    letter-spacing: 0.04em !important;
 }
 
-#image-input label, #image-input label span, #image-input .block-title, #image-input span {
+.block-label *,
+.label-wrap * {
+    color: #FFFFFF !important;
+}
+
+#image-input .block-label,
+#image-input .block-label span,
+#image-input label,
+#image-input label span,
+#image-input span {
+    background-color: #15151B !important;
     color: #FFFFFF !important;
     font-weight: 700 !important;
 }
 
-#retention-slider label, #retention-slider label span, #retention-slider .block-title, #retention-slider span, #retention-slider input {
+#retention-slider .block-label,
+#retention-slider label,
+#retention-slider label span,
+#retention-slider .block-title,
+#retention-slider span,
+#retention-slider input {
     color: #FFFFFF !important;
     font-weight: 700 !important;
 }
 
 /* Clickable Examples Table Headers: "Input Image" & "Patches retained (%)" */
+.examples table thead tr th,
+.examples table thead th,
 .examples table th,
 .examples th,
 table th,
+table th *,
 .gr-samples-table th,
+.gr-samples-table th *,
 .table-wrap th,
+.table-wrap th *,
 .gallery th,
+.gallery th *,
 th span,
-table thead tr th {
+table thead tr th * {
     color: #FFFFFF !important;
+    background-color: #15151B !important;
     font-weight: 700 !important;
     font-size: 13px !important;
 }

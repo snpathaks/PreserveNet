@@ -468,6 +468,192 @@ input[type="range"]::-moz-range-thumb {
         gap: 12px;
     }
 }
+
+/* ========================================================================= */
+/* Amber Yellow Gold (#FFB400) Loading Screen & Sparkling Effects           */
+/* ========================================================================= */
+
+:root {
+    --loader-color: #FFB400 !important;
+    --color-accent: #FFB400 !important;
+    --primary-500: #FFB400 !important;
+    --primary-600: #FFC933 !important;
+}
+
+/* Keyframes for Sparkling & Shimmering */
+@keyframes amberSparkle {
+    0%, 100% {
+        opacity: 0.2;
+        transform: scale(0.6) rotate(0deg);
+        filter: drop-shadow(0 0 3px #FFB400);
+    }
+    35% {
+        opacity: 1;
+        transform: scale(1.3) rotate(45deg);
+        filter: drop-shadow(0 0 12px #FFC933) drop-shadow(0 0 20px #FFB400);
+    }
+    65% {
+        opacity: 0.35;
+        transform: scale(0.7) rotate(90deg);
+        filter: drop-shadow(0 0 5px #FFB400);
+    }
+    85% {
+        opacity: 0.95;
+        transform: scale(1.25) rotate(135deg);
+        filter: drop-shadow(0 0 15px #FFE580) drop-shadow(0 0 25px #FFB400);
+    }
+}
+
+@keyframes sparkleGlowSweep {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes amberPulseHalo {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 180, 0, 0.6), inset 0 0 12px rgba(255, 180, 0, 0.3);
+    }
+    70% {
+        box-shadow: 0 0 0 20px rgba(255, 180, 0, 0), inset 0 0 22px rgba(255, 180, 0, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 180, 0, 0), inset 0 0 12px rgba(255, 180, 0, 0.3);
+    }
+}
+
+@keyframes sparkStarField {
+    0% {
+        background-position: 0 0, 20px 40px, 80px 120px;
+    }
+    50% {
+        background-position: 40px 30px, 60px 10px, 120px 150px;
+    }
+    100% {
+        background-position: 80px 60px, 20px 40px, 80px 120px;
+    }
+}
+
+/* Loading Overlay Backdrop (Amber-infused dark surface with sparkles) */
+.wrap.default:not(.hide),
+.loading-status,
+.load-wrap,
+.generating,
+div.wrap.svelte-1uj8rng:not(.hide) {
+    background-color: rgba(11, 11, 15, 0.88) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 180, 0, 0.35) !important;
+    border-radius: 14px !important;
+    background-image: 
+        radial-gradient(1.5px 1.5px at 15px 25px, #FFE580, transparent),
+        radial-gradient(2px 2px at 75px 85px, #FFB400, transparent),
+        radial-gradient(1.5px 1.5px at 145px 35px, #FFC933, transparent),
+        radial-gradient(2.5px 2.5px at 210px 120px, #FFFFFF, transparent),
+        radial-gradient(1.8px 1.8px at 280px 65px, #FFB400, transparent) !important;
+    background-size: 300px 150px !important;
+    animation: sparkStarField 8s linear infinite !important;
+}
+
+/* Sparkling Star Elements using Pseudo Elements */
+.wrap.default:not(.hide)::before,
+.loading-status:not(.hide)::before,
+div.wrap.svelte-1uj8rng:not(.hide)::before {
+    content: "✦" !important;
+    position: absolute !important;
+    top: 20% !important;
+    left: 28% !important;
+    font-size: 22px !important;
+    color: #FFE580 !important;
+    animation: amberSparkle 2.2s infinite ease-in-out !important;
+    pointer-events: none !important;
+    z-index: 15 !important;
+    text-shadow: 0 0 12px #FFB400, 0 0 24px #FFC933 !important;
+}
+
+.wrap.default:not(.hide)::after,
+.loading-status:not(.hide)::after,
+div.wrap.svelte-1uj8rng:not(.hide)::after {
+    content: "✧" !important;
+    position: absolute !important;
+    bottom: 22% !important;
+    right: 28% !important;
+    font-size: 26px !important;
+    color: #FFB400 !important;
+    animation: amberSparkle 2.8s infinite ease-in-out 0.8s !important;
+    pointer-events: none !important;
+    z-index: 15 !important;
+    text-shadow: 0 0 14px #FFB400, 0 0 28px #FFE580 !important;
+}
+
+/* Loading Spinners & SVG paths */
+svg.loading,
+.loading-status svg,
+.loader svg,
+svg[class*="loading"],
+.animate-spin,
+svg.svelte-1vhirvf,
+.loading svg {
+    stroke: #FFB400 !important;
+    color: #FFB400 !important;
+    filter: drop-shadow(0 0 12px rgba(255, 180, 0, 0.95)) drop-shadow(0 0 24px rgba(255, 180, 0, 0.5)) !important;
+}
+
+svg.svelte-1vhirvf path,
+svg.loading path,
+.loading-status svg path,
+.loader svg path,
+.loading svg path {
+    fill: #FFB400 !important;
+}
+
+/* Generating / Running Pulsating Border with Sparking Amber Halo */
+.generating {
+    border: 2px solid #FFB400 !important;
+    border-radius: 14px !important;
+    animation: amberPulseHalo 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1) !important;
+    box-shadow: 0 0 25px rgba(255, 180, 0, 0.5) !important;
+}
+
+/* Progress bar inside loading */
+.progress-bar-wrap {
+    background: #15151B !important;
+    border: 1px solid rgba(255, 180, 0, 0.4) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 0 12px rgba(255, 180, 0, 0.25) !important;
+}
+
+.progress-bar,
+.progress-level {
+    background: linear-gradient(90deg, #FF9500 0%, #FFB400 35%, #FFF0B3 50%, #FFB400 65%, #FF9500 100%) !important;
+    background-size: 200% 100% !important;
+    animation: sparkleGlowSweep 1.5s linear infinite !important;
+    box-shadow: 0 0 16px rgba(255, 180, 0, 0.9) !important;
+}
+
+/* ETA & Progress Text */
+.meta-text,
+.meta-text-center,
+.progress-text,
+.progress-level-inner,
+.loading-text {
+    color: #FFB400 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    text-shadow: 0 0 8px rgba(255, 180, 0, 0.8), 0 0 16px rgba(255, 180, 0, 0.4) !important;
+}
+
+/* Global App Loading Splash Screen */
+gradio-app.loading,
+gradio-app > .loading,
+.gradio-container.loading {
+    background-color: #0B0B0F !important;
+    color: #FFB400 !important;
+}
 """
 
 

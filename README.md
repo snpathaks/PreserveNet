@@ -17,7 +17,10 @@
 9. [Important Findings & Key Insights](#important-findings--key-insights)
 10. [Step 9: Latency, Throughput & FLOPs Benchmarking](#step-9-latency-throughput--flops-benchmarking)
 11. [Step 10: Full Retention Sweep & Pareto Curve](#step-10-full-retention-sweep--pareto-curve)
-12. [Roadmap](#roadmap)
+12. [Step 11: Comprehensive Ablation Study](#step-11-comprehensive-ablation-study)
+13. [Step 12: Interactive Demo & Deployment](#step-12-interactive-demo--deployment)
+14. [Step 13: Technical Report & Related Work](#step-13-technical-report--related-work)
+15. [Roadmap](#roadmap)
 
 ---
 
@@ -43,6 +46,14 @@ At test time, we apply **patch-retention masks** ($16 \times 16$ blocks) to test
 
 ```
 PreserveNet/
+├── docs/
+│   ├── report.md                      # Step 13: Comprehensive technical report & empirical analysis
+│   └── related_work.md                # Step 13: Related work (DynamicViT, EViT, AFF, KL vs CE)
+├── app/
+│   ├── app.py                         # Step 12: Interactive Gradio 6 demo (Amber Gold dark theme)
+│   ├── inference.py                   # Step 12: Dual inference pipeline & patch retention overlay
+│   ├── requirements.txt               # Step 12: Pinned dependencies for Space deployment
+│   └── weights/                       # Step 12: Exported state dict & safetensors (<300 KB)
 ├── src/
 │   ├── data/
 │   │   ├── datasets.py       # Imagenette (fastai CDN) & CIFAR-10 data loaders
@@ -75,11 +86,12 @@ PreserveNet/
 │   ├── baseline.py                    # CIFAR-10 initial reference
 │   ├── sanity_check_reducer.py        # Step 6: shape/range/heatmap sanity check
 │   ├── train_preservenet.py           # Step 7: End-to-end PreserveNet training script
-│   └── benchmark_complexity.py        # Step 9: Full FLOP / latency / throughput benchmark runner
+│   ├── benchmark_complexity.py        # Step 9: Full FLOP / latency / throughput benchmark runner
+│   ├── export_for_demo.py             # Step 12: Export reducer weights & push to Hugging Face
+│   └── deploy_to_hf_spaces.py         # Step 12: Direct deployment script to Hugging Face Spaces
 ├── results/
-│   └── step10/
-│       ├── pareto_results.json        # Step 10: raw sweep numbers (all methods × all rates)
-│       └── pareto_curve.png           # Step 10: headline two-panel Pareto figure
+│   ├── step10/                        # Step 10: pareto_results.json & pareto_curve.png
+│   └── step11/                        # Step 11: ablation_results.json & dashboard visualizer
 ├── notebooks/
 │   ├── imagenette_sanity_check.py     # Batch shape & visual sanity check
 │   ├── imagenette_sanity.png          # Visual verification artifact
@@ -588,6 +600,53 @@ To isolate this, we train two identical PatchScorer reducers under identical hyp
 
 ---
 
+## Step 12: Interactive Demo & Deployment
+
+Step 12 translates PreserveNet into a production-grade, interactive application and Hugging Face deployment pipeline:
+
+### 1. Interactive Gradio 6 Demo (`app/app.py`)
+- **Theme & Aesthetics:** Sleek, modern dark-mode aesthetic (`#0B0B0F` canvas, `#15151B` surfaces, `#2A2A33` borders) with vibrant **Amber Gold (`#FFB400`)** accents and soft glow buttons.
+- **Sparkling Particles Loading State:** Custom animated loading overlay with CSS twinkling stars and an amber particle field.
+- **Dual Live Predictions:** Real-time side-by-side classification displays comparing unmasked vs. reduced input.
+- **Dynamic Patch Sieve Overlay:** Interactive slider ($10\%$ to $100\%$) showing exactly which $16 \times 16$ patches are preserved (tinted amber at 25%) and dropped (dimmed to 15%), along with exact patch counts and KL divergence.
+
+```powershell
+# Launch interactive demo locally:
+python app/app.py
+# Runs on http://127.0.0.1:7860
+```
+
+### 2. Standalone Model Export (`scripts/export_for_demo.py`)
+- Exports trained `PatchScoreReducer` weights to standard PyTorch state dict (`app/weights/preservenet_reducer.pt`, 302.9 KB) and Hugging Face Safetensors (`app/weights/preservenet_reducer.safetensors`, 296.6 KB).
+- Generates JSON model configuration and upload functionality to the Hugging Face Hub (`huggingface_hub.HfApi`).
+
+```powershell
+# Run exporter:
+python scripts/export_for_demo.py --checkpoint checkpoints/preservenet_best.pt --output_dir app/weights
+```
+
+### 3. Hugging Face Spaces Deployment (`scripts/deploy_to_hf_spaces.py`)
+- Automated one-command deployment to Hugging Face Spaces with pre-configured `requirements.txt` and space metadata card.
+
+---
+
+## Step 13: Technical Report & Related Work
+
+PreserveNet includes comprehensive, publication-grade technical documentation in the [`docs/`](docs/) directory:
+
+- **[Comprehensive Technical Report (`docs/report.md`)](docs/report.md):**  
+  Detailed write-up covering the problem formulation, mathematical foundation of the prediction-preservation objective ($\mathcal{L}_{\text{agree}}$), cross-resolution empirical dynamics ($32 \times 32$ vs. $224 \times 224$), computational complexity and sequence truncation proofs, Pareto curves, and ablation findings.
+
+- **[Related Work & Theoretical Positioning (`docs/related_work.md`)](docs/related_work.md):**  
+  In-depth literature survey and theoretical positioning paper comparing PreserveNet against:
+  - **DynamicViT** (Rao et al., NeurIPS 2021)
+  - **EViT** (Liang et al., ICLR 2022)
+  - **AutoFocusFormer** (Chen et al., CVPR 2023)
+  - **Token Merging / ToMe** (Bolya et al., ICLR 2023)
+  - **Theoretical Analysis:** Contrasting PreserveNet's **Prediction-Preservation framing (KL divergence)** with the standard **Accuracy-Only framing ($\mathcal{L}_{\text{task}}$ Cross-Entropy)**, examining gradient saturation near the accuracy ceiling, preservation of dark knowledge, epistemic confidence calibration, and fully self-supervised applicability without ground-truth labels.
+
+---
+
 ## Roadmap
 
 | Step | Status | Description |
@@ -603,5 +662,7 @@ To isolate this, we train two identical PatchScorer reducers under identical hyp
 | **9** | ✅ Done | Latency, throughput & FLOPs benchmarking (fvcore FLOP counts, efficiency curves, accuracy-per-GFLOP) |
 | **10** | ✅ Done | Full retention sweep (10/25/50/75%) + Pareto curve: agreement rate (primary) & top-1 accuracy vs. all 5 baselines |
 | **11** | ✅ Done | Comprehensive ablations: With/without $L_{\text{agree}}$, Gumbel vs STE, Masking vs Token Drop, Transfer, GradCAM overlay |
+| **12** | ✅ Done | Production demo & deployment: Gradio 6 interactive UI (Amber Gold theme), Safetensors export, HF Spaces deployer |
+| **13** | ✅ Done | Final write-up & positioning: Comprehensive Technical Report (`docs/report.md`) & Related Work (`docs/related_work.md`) |
 
 

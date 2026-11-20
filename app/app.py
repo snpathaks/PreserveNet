@@ -820,7 +820,6 @@ def build_app() -> gr.Blocks:
 
     with gr.Blocks(
         title="PreserveNet — Prediction-Preserving Image Reduction",
-        css=CUSTOM_CSS,
     ) as demo:
         # Header
         gr.HTML("""
@@ -921,16 +920,8 @@ def build_app() -> gr.Blocks:
             outputs=[out_orig, out_overlay, out_reduced, stats_output, preds_output],
         )
 
-        # Trigger on example image load if available
-        if examples:
-            demo.load(
-                fn=run_preservenet,
-                inputs=[
-                    gr.State(str(ex_dog) if ex_dog.is_file() else None),
-                    gr.State(25),
-                ],
-                outputs=[out_orig, out_overlay, out_reduced, stats_output, preds_output],
-            )
+        # NOTE: Removed auto-load on startup to prevent hangs during model init.
+        # Users can click "Reduce & classify" or use an example to trigger inference.
 
     return demo
 
@@ -942,6 +933,6 @@ if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0",
         server_port=7860,
-        css=CUSTOM_CSS,
         show_error=True,
+        css=CUSTOM_CSS,
     )
